@@ -164,7 +164,7 @@ LOST ISLAND/
 │   │   └── Settings/       # URP ve Render Pipeline konfigürasyonları
 │   ├── Packages/           # Unity paket tanımları (manifest.json)
 │   └── ProjectSettings/    # Unity proje, girdi ve kalite ayarları
-├── docs/                   # Detaylı dokümantasyonlar
+├── Docs/                   # Detaylı dokümantasyonlar
 │   ├── README_LOST ISLAND.md  # Kapsamlı Oyun Tasarımı Dokümanı (GDD)
 │   └── README_DEV_PLAN.md     # Teknik Mimari ve Geliştirme Planı
 ├── .gitignore              # Unity ve IDE için optimize edilmiş kurallar
@@ -212,6 +212,6 @@ LOST ISLAND/
 
 ## 📚 Detaylı Dokümantasyon
 
-Tasarım kararları ve teknik ayrıntılar hakkında daha fazla bilgi için `docs` klasörünü inceleyebilirsiniz:
-- 📖 [Oyun Tasarımı Dokümanı (GDD)](docs/README_LOST%20ISLAND.md)
-- 🛠️ [Teknik Mimari ve Geliştirme Planı](docs/README_DEV_PLAN.md)
+Tasarım kararları ve teknik ayrıntılar hakkında daha fazla bilgi için `Docs` klasörünü inceleyebilirsiniz:
+- 📖 [Oyun Tasarımı Dokümanı (GDD)](Docs/README_LOST%20ISLAND.md)
+- 🛠️ [Teknik Mimari ve Geliştirme Planı](Docs/README_DEV_PLAN.md)
