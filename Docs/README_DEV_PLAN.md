@@ -1,299 +1,311 @@
 # LOST ISLAND — Teknik Mimari ve Geliştirme Planı
 
-**Doküman sürümü:** 1.0  
+**Doküman sürümü:** 2.0  
 **Motor:** Unity 6 + URP  
 **Ağ:** Mirror + KCP Transport  
-**Fizik ve simülasyon:** Unity Physics  
-**Sunucu modeli:** Dedicated Server, sunucu otoriteli  
-**Geliştirme yaklaşımı:** Önce oynanabilir prototip, sonra optimizasyon ve backend
+**Fizik ve simülasyon:** Unity Physics (Authoritative Dedicated Server)  
+**Yazılım Mimarisi:** Olay Güdümlü Mimari (Event-Driven Architecture), ScriptableObject Architecture, SOLID  
+**Geliştirme yaklaşımı:** Önce decoupled çekirdek sistemler ve oynanabilir dikey kesit (vertical slice), ardından ağ optimizasyonu ve backend
 
 ---
 
-## 1. Mimari karar defteri
+## 📌 İçindekiler
+1. [Mimari Karar Defteri](#1-mimari-karar-defteri)
+2. [Genel Sistem Mimarisi & Event Akışı](#2-genel-sistem-mimarisi--event-akışı)
+3. [Olay Güdümlü Mimari (Event-Driven Architecture) Standartları](#3-olay-güdümlü-mimari-event-driven-architecture-standartları)
+4. [Sistemler Arası Olay (Event) Matrisi](#4-sistemler-arası-olay-event-matrisi)
+5. [Unity Physics & Otoriter Sunucu Mimarisi](#5-unity-physics--otoriter-sunucu-mimarisi)
+6. [Mirror Ağ ve Olay Senkronizasyonu](#6-mirror-ağ-ve-olay-senkronizasyonu)
+7. [Çatışma, Silah ve Hasar Hattı](#7-çatışma-silah-ve-hasar-hattı)
+8. [ScriptableObject Mimarisi ve Veri Odaklı Tasarım](#8-scriptableobject-mimarisi-ve-veri-odaklı-tasarım)
+9. [Profesyonel Kodlama & Performans Standartları](#9-profesyonel-kodlama--performans-standartları)
+10. [Proje Klasör ve Assembly (asmdef) Yapısı](#10-proje-klasör-ve-assembly-asmdef-yapısı)
+11. [Geliştirme Yol Haritası (Milestones)](#11-geliştirme-yol-haritası-milestones)
+12. [İlk Prototipin Kapsamı & Kabul Kriterleri](#12-ilk-prototipin-kapsamı--kabul-kriterleri)
 
-| Konu | Karar | Durum |
-|---|---|---|
-| Oyun motoru | Unity 6 + URP | Kesin |
-| Ağ kütüphanesi | Mirror + KCP | Kesin |
-| Sunucu modeli | Dedicated Server | Kesin |
-| Otorite | Sunucu otoriteli | Kesin |
-| Fizik ve çarpışma | Unity Physics | Kesin |
-| Fizik düzlemi | XZ, Y dikey eksen | Kesin |
-| Fizik tick'i | Başlangıç hedefi 30 Hz | Test edilecek |
-| Ağ güncellemesi | Başlangıç hedefi 20 Hz | Test edilecek |
-| Vuruş sistemi | Sunucu taraflı Physics.Raycast / SphereCast | Kesin |
-| Backend | İlk prototipte yok | Kesin |
-| İlk platform | PC geliştirme ortamı | Geçici |
-| İlk prototip ölçeği | 20 oyuncu, botlar dahil | Hedef |
-| Yeniden doğma | Yok; elenen oyuncu izleyici olur | Kesin |
+---
 
-Başlangıç değerleri performans ve oynanış testleriyle değiştirilebilir. Henüz test edilmemiş değerler kesin performans garantisi değildir.
+## 1. Mimari Karar Defteri
 
-## 2. Genel sistem mimarisi
+| Konu | Karar | Gerekçe / Standart | Durum |
+|---|---|---|---|
+| **Oyun motoru** | Unity 6 + URP | Modern grafik pipeline'ı, gelişmiş performans ve stabilite. | Kesin |
+| **Yazılım Deseni** | Event-Driven & Decoupled (EDA) | Sistemlerin birbirine doğrudan bağımlılığını (tight coupling) engellemek; modülerliği ve test edilebilirliği artırmak. | Kesin |
+| **Arayüz (UI) Modeli** | Reaktif / Push-Based (Sıfır Polling) | `Update()` içerisinde sürekli veri sorgulama (polling) kesinlikle yasaktır; UI yalnızca ilgili event tetiklendiğinde güncellenir. | Kesin |
+| **Bellek Yönetimi** | Merkezi Object Pooling | Mermiler, kovanlar, efektler ve sesler için sıfır GC tahsisi (Garbage Collection stutter engelleme). | Kesin |
+| **Ağ kütüphanesi** | Mirror + KCP | Düşük gecikmeli UDP tabanlı bağlantı, açık kaynak esneklik ve stabil Dedicated Server desteği. | Kesin |
+| **Sunucu modeli** | Dedicated Server (Authoritative) | Hile ve desenskronizasyonu önleme; tüm kritik oyun kuralları sunucu onaylıdır. | Kesin |
+| **Fizik ve çarpışma** | Unity Physics (XZ düzlemi, Y dikey) | Performanslı 3D çarpışma ve Raycast/SphereCast sorguları. | Kesin |
+| **Girdi Sistemi** | Unity New Input System | C# Action ve Event tabanlı, çoklu platforma (PC/Gamepad/Mobil) kolay uyarlanabilir girdi katmanı. | Kesin |
+| **Veri Yönetimi** | ScriptableObject Architecture | Kod içine sabit değer (hardcoded) yazılmaması, veri ve mantık ayrımı, tasarımcı dostu modifikasyon. | Kesin |
+| **Modülerlik** | Assembly Definitions (asmdef) | Katmanlar arası bağımlılık sınırları çizme ve Unity derleme sürelerini minimize etme. | Kesin |
+| **İlk platform** | PC (Klavye + Fare) | Hızlı prototipleme ve test ortamı. | Geçici |
+| **İlk prototip ölçeği** | 20 oyuncu/bot | Küçük haritada stabil fizik ve ağ yükü testi. | Hedef |
+
+---
+
+## 2. Genel Sistem Mimarisi & Event Akışı
+
+Oyun; sunucu otoritesini korurken istemci tarafında akıcı bir deneyim sunmak için olay tabanlı yayınla-abone ol (Publish-Subscribe) modelini kullanır.
 
 ```text
-                 LOST ISLAND
-                      |
-          +-----------+-----------+
-          |                       |
-    UNITY CLIENT             GAME SERVER
-    Oyuncu bilgisayarı       Dedicated Server
-          |                       |
-    - Input                  - Oyun kuralları
-    - Kamera                 - Unity Physics
-    - HUD                    - Hareket ve çarpışma
-    - Animasyon              - Hasar ve silahlar
-    - Ses / VFX              - Loot ve envanter
-    - Görsel efektler        - Operatör yetenekleri
-          |                       |
-          +------ Mirror/KCP -----+
-                      |
-                 Oyun durumu
+                                LOST ISLAND ENGINE
+                                        |
+                 +----------------------+----------------------+
+                 |                                             |
+           GAME SERVER                                   UNITY CLIENT
+        (Dedicated Server)                            (Oyuncu İstemcisi)
+                 |                                             |
+      [ Otoriter Oyun Mantığı ]                       [ Girdi (New Input) ]
+      - Unity Physics Simülasyonu                              |
+      - Hasar & Vuruş Onayı                                    v
+      - Envanter & Loot Doğrulama                       (Command / Niyet)
+      - AURA Zone Hesaplaması                                  |
+                 |                                             |
+                 +---------------- Mirror / KCP ---------------+
+                                        |
+                                [ Ağ Senkronizasyonu ]
+                                (Network Events & RPCs)
+                                        |
+                                        v
+                          [ İstemci EventBus / SO Events ]
+                                        |
+         +-----------------+------------+-------------+------------------+
+         |                 |                          |                  |
+         v                 v                          v                  v
+     [ UI / HUD ]     [ SFX Audio ]             [ VFX / FX ]      [ Kamera / Animasyon ]
+     - Can Barı       - Ateş & İsabet Sesleri   - Mermi İzi       - Kamera Sarsıntısı
+     - Mermi Sayacı   - Kalkan Kırılma Sesi     - Kan / Kıvılcım  - Reaktif Tepkiler
+     - Mini Harita    - Çevre Uyarı Sesleri     - Alan Sınırı     - Geri Tepme Hissi
 ```
 
-İstemci oyuncunun girdilerini sunucuya gönderir. Sunucu bu girdileri kontrol eder, fizik simülasyonunu yürütür ve doğru oyun durumunu belirler.
+### Örnek Olay Akışı: Ateş Etme ve Hasar Döngüsü
+```text
+[İstemci] Input -> Event: OnFireInputTriggered -> Network: CmdFireWeapon(rayOrigin, aimDirection)
+   ↓
+[Sunucu]  Komutu Alır -> Silah/Mühimmat Doğrulaması -> Physics.Raycast()
+   ↓
+[Sunucu]  İsabet Başarılı -> Hasar Uygula -> Sunucu Eventi: ServerOnDamageCalculated
+   ↓
+[Sunucu]  Ağ Olayı Yayınla: RpcDamageConfirmed(targetId, damageAmount, hitPoint)
+   ↓
+[İstemciler] İstemci EventBus: Event fırlatılır (OnHitConfirmed)
+   ├─► UI HUD: Hasar sayısını ekranda uçur (Damage Number Popup)
+   ├─► Ses Yöneticisi: İsabet ses efekti çal (Hit Marker SFX)
+   ├─► Efekt Yöneticisi: ObjectPool'dan kan/kıvılcım parçacığı çıkar
+   └─► Hedef Oyuncu: HealthComponent -> Event: OnHealthChanged -> Can barını güncelle
+```
 
-**Temel kural:** İstemci hareket etmek istediğini söyler. Gerçek konum, hasar, mühimmat, loot ve maç sonucu hakkında son kararı sunucu verir.
+---
 
-## 3. Unity Physics mimarisi
+## 3. Olay Güdümlü Mimari (Event-Driven Architecture) Standartları
 
-Hareket, çarpışma ve fiziksel etkileşimler Unity'nin fizik sistemiyle gerçekleştirilecek.
+Sistemler arasındaki tüm iletişimde katı kurallar uygulanır:
 
-### Oyuncu hareketi
+### 3.1. Gevşek Bağlılık İlkesi (Loose Coupling)
+- Hiçbir oyun bileşeni doğrudan diğer sistemlerin somut sınıflarına bağlanarak onları yönetmez.
+- **Kötü Pratik:** `HealthComponent` içinde `public PlayerHUD hud;` tutup `hud.UpdateHealthBar(currentHealth)` çağırmak.
+- **Profesyonel Pratik:** `HealthComponent`, durum değiştiğinde `public event Action<float, float> OnHealthChanged;` veya ScriptableObject GameEvent tetikler. `PlayerHUD` bu olayı sahnede dinler ve kendini yeniler.
 
-- Karakterler XZ düzleminde hareket eder.
-- Y ekseni yükseklik için kullanılır.
-- İlk sürümde tek katlı harita hedeflenir.
-- Oyuncu hareketi sunucu tarafından yürütülür.
-- Duvar, ağaç, konteyner ve diğer engeller Unity Collider bileşenleriyle tanımlanır.
-- Hareket için başlangıçta CharacterController değerlendirilir. Gerekli durumlarda Rigidbody tabanlı çözüme geçilebilir.
+### 3.2. Sıfır Polling İlkesi (Zero Polling / Push-Based UI)
+- `MonoBehaviour.Update()` içerisinde her karede veri durumu kontrol etmek **kesinlikle yasaktır**.
+  ```csharp
+  // KESİNLİKLE YASAK (Polling / Anti-pattern)
+  void Update() {
+      healthSlider.value = playerHealth.currentHealth;
+      ammoText.text = weapon.currentAmmo.ToString();
+  }
+  ```
+- Bunun yerine tamamen olay dinleme (Subscription) esastır:
+  ```csharp
+  // PROFESYONEL YÖNTEM (Event-Driven / Push-based)
+  private void OnEnable() {
+      healthEvent.OnHealthChanged += HandleHealthChanged;
+  }
+  private void OnDisable() {
+      healthEvent.OnHealthChanged -= HandleHealthChanged;
+  }
+  private void HandleHealthChanged(float current, float max) {
+      healthSlider.value = current / max;
+  }
+  ```
 
-### Çarpışmalar
+### 3.3. Event Kanalları Türleri ve Kullanım Rehberi
 
-- Statik çevre: BoxCollider, CapsuleCollider ve uygun diğer Collider türleri.
-- Oyuncular: CharacterController veya uygun Collider.
-- Dinamik yetenek nesneleri: Collider ve gerektiğinde Rigidbody.
-- KİLİT'in bariyeri gibi nesneler çalışma sırasında oluşturulabilir.
-- Fizik katmanları gereksiz çarpışmaları engellemek için düzenlenir.
+1. **C# Standart Action / Event:**
+   - Aynı GameObject veya yakın hiyerarşideki bileşenler arası yüksek performanslı iletişim için kullanılır (örn: `WeaponController` -> `WeaponAudio`).
+2. **ScriptableObject Game Events (SO Events):**
+   - Farklı sahneler, prefab'lar ve izole alt sistemler arası sahne bağımsız iletişim için kullanılır (örn: `OnPlayerDiedSOEvent`, `OnZoneShrinkSOEvent`). Inspector üzerinden bağlanabilir ve tasarımcı dostudur.
+3. **Merkezi EventBus (Pub/Sub):**
+   - Küresel oyun akışı, maç durumları ve ağdan gelen küresel bildirimlerin tip güvenli (type-safe) dağıtımı için kullanılır (`EventBus.Publish<MatchStateChangedEvent>(...)`).
 
-### Önemli sınır
+---
 
-Unity Physics kullanılması, bütün oyun mantığının fizik motoruna bırakılması anlamına gelmez.
+## 4. Sistemler Arası Olay (Event) Matrisi
 
-Can, mühimmat, silah bekleme süresi, yetenek bekleme süresi, loot ve maç kuralları normal C# oyun koduyla yönetilir. Unity Physics yalnızca fiziksel hareket, çarpışma ve sorgulama gereken yerlerde kullanılır.
+Tüm sistemler bu olay sözleşmelerine (contracts) göre inşa edilecektir:
 
-## 4. Mirror ağ mimarisi
+| Sistem | Yayınladığı Temel Olaylar (Publish) | Dinlediği Olaylar (Subscribe) |
+|---|---|---|
+| **Input System** | `OnMoveInput`, `OnAimInput`, `OnFireInputStarted`, `OnFireInputCanceled`, `OnReloadInput`, `OnAbilityInput` | `OnMatchStateChanged` (Girdileri kilitle/aç) |
+| **Player System** | `OnPlayerSpawned`, `OnPlayerStateChanged`, `OnPlayerDied` | `OnHealthChanged`, `OnMoveInput`, `OnAbilityCast` |
+| **Combat & Health** | `OnHealthChanged`, `OnShieldChanged`, `OnDamageTaken`, `OnHitConfirmed`, `OnDeath` | `OnWeaponHit`, `OnZoneDamageTick` |
+| **Weapon System** | `OnWeaponFired`, `OnReloadStarted`, `OnReloadCompleted`, `OnAmmoChanged`, `OnWeaponSwapped` | `OnFireInputStarted`, `OnReloadInput` |
+| **Inventory & Loot** | `OnItemPickedUp`, `OnItemDropped`, `OnInventoryChanged`, `OnChestOpened` | `OnInteractInput`, `OnDeath` (Loot saçma) |
+| **Operator System** | `OnAbilityCast`, `OnAbilityCooldownChanged`, `OnAbilityEnded` | `OnAbilityInput`, `OnDeath` (Yetenek kesme) |
+| **Zone (AURA)** | `OnZonePhaseChanged`, `OnZoneShrinkStarted`, `OnZoneShrinkEnded`, `OnPlayerEnteredDangerZone`, `OnPlayerExitedDangerZone` | `OnMatchStarted` |
+| **Match System** | `OnMatchStateChanged` (Lobby, Countdown, Active, Ended), `OnPlayerCountChanged`, `OnMatchWinnerAnnounced` | `OnPlayerDied`, `OnZonePhaseChanged` |
+| **Audio & VFX** | `OnSoundPlayed`, `OnVFXSpawned` | `OnWeaponFired`, `OnHitConfirmed`, `OnAbilityCast`, `OnDamageTaken`, `OnDeath` |
+| **UI / HUD** | `OnUIActionTriggered` | `OnHealthChanged`, `OnAmmoChanged`, `OnAbilityCooldownChanged`, `OnZonePhaseChanged`, `OnPlayerCountChanged` |
 
-### İstemci sorumlulukları
+---
 
-- Oyuncu girdisini toplamak.
-- Hareket ve nişan girdilerini göndermek.
-- Kamera, HUD ve arayüzü yönetmek.
-- Animasyon, ses ve görsel efektleri çalıştırmak.
-- Sunucudan gelen oyun durumunu göstermek.
+## 5. Unity Physics & Otoriter Sunucu Mimarisi
 
-### Sunucu sorumlulukları
+- **Hareket Düzlemi:** XZ düzlemi. Y ekseni yükseklik ve basamak tırmanma için kullanılır.
+- **Sunucu Otoritesi:** İstemci karakter kontrolcüsü doğrudan dünya konumunu yazmaz; giriş vektörünü sunucuya iletir. Sunucu `CharacterController.Move()` veya Rigidbody kuvvetini uygular ve doğrulanmış pozisyonu bildirir.
+- **Hitscan ve Çarpışma Doğrulaması:**
+  - Silah atışları sunucu tarafında `Physics.Raycast` / `SphereCast` ile hesaplanır.
+  - Katmanlar (Layer Mask) optimize edilir: `PlayerHitbox`, `EnvironmentStatic`, `ShieldObstacle`.
+  - Engel arkasından atışlar (wallhack vb.) ve gecikmeli vuruşlar sunucu geometrisiyle doğrulanır.
+- **Mantık & Fizik Sınırı:** Can, mühimmat, yetenek süresi ve oyun kuralları fizik döngüsünden bağımsız, saf veri ve event odaklı C# bileşenleriyle yürütülür.
 
-- Oyuncu hareketini yürütmek.
-- Fizik çarpışmalarını doğrulamak.
-- Silah atışlarını ve isabetleri hesaplamak.
-- Hasar ve eleme işlemlerini yürütmek.
-- Loot ve envanteri yönetmek.
-- Operatör yeteneklerini doğrulamak.
-- AURA güvenli alanını yönetmek.
-- Maçın başlangıç ve bitiş kararlarını vermek.
+---
 
-### Ağ iletişimi
+## 6. Mirror Ağ ve Olay Senkronizasyonu
 
-Mirror + KCP kullanılacak.
+### Ağ İletişim İlkeleri
+- **Komutlar (Commands - `[Command]`):** İstemcinin sunucudan eylem talep etmesi (ateş etme, yetenek açma, sandık açma).
+- **Hedefli Olaylar (TargetRpc - `[TargetRpc]`):** Yalnızca ilgili istemciye özel bildirimler (örn. envanter güncellemesi, kişisel hasar bildirimi).
+- **İstemci Olayları (ClientRpc - `[ClientRpc]`):** Çevredeki tüm oyuncuların görmesi gereken durumlar (ateş efekti, ses, yetenek patlaması).
+- **Durum Senkronizasyonu (SyncVars):** Sürekli değişmeyen kritik değişkenler için (`Hook` fonksiyonları ile event tetiklenir).
+  ```csharp
+  [SyncVar(hook = nameof(OnHealthChangedHook))]
+  private float currentHealth;
 
-- Oyuncu girdileri: İstemciden sunucuya.
-- Oyuncu durumları: Sunucudan ilgili istemcilere.
-- Kritik olaylar: Ölüm, eşya alma, maç durumu gibi olaylar güvenilir iletişimle.
-- Sık güncellenen hareket bilgileri: Uygun olduğunda güvenilir olmayan güncellemelerle.
-- Görünürlük: İlerleyen aşamada AOI ile sınırlandırılacak.
+  private void OnHealthChangedHook(float oldHealth, float newHealth) {
+      // Yerel event fırlatarak HUD ve sesleri bilgilendir
+      OnHealthChanged?.Invoke(newHealth, maxHealth);
+  }
+  ```
 
-### Hareket senkronizasyonu
+---
 
-İlk aşamada sunucu otoriteli hareket ve uzak oyuncuların sunucu durumuna göre gösterilmesi yeterlidir.
+## 7. Çatışma, Silah ve Hasar Hattı
 
-Client-side prediction ve server reconciliation ilk günden zorunlu tutulmayacak. Gecikme testleri sonucunda ihtiyaç görülürse yerel oyuncu hareketine tahmin ve düzeltme eklenecek.
+- **Geri Tepme (Recoil) & Yayılma (Spread):** Silah tanımındaki (ScriptableObject) matematiksel eğrilere göre hesaplanır.
+- **Hasar Katmanları:**
+  - Vücut Vuruşu (Standart Hasar)
+  - Kritik Vuruş (Headshot / Zayıf Nokta Çarpanı)
+  - Kalkan Emilimi (Önce zırh/kalkan puanı tükenir, kalan cana geçer).
+- **Vuruş Olayı Akışı:**
+  1. Sunucu isabeti doğrular.
+  2. Hedefin `IDamageable` arayüzü tetiklenir.
+  3. `DamageData` yapısı (hasar, vuran, vuruş noktası, hasar türü) event olarak iletilir.
+  4. Saldırgana vuruş onay eventi (`OnHitConfirmed`), hedefe hasar alma eventi (`OnDamageTaken`) döner.
 
-Bu yaklaşım, ilk prototipte gereksiz ağ karmaşıklığını azaltır.
+---
 
-## 5. Çatışma ve silah sistemi
+## 8. ScriptableObject Mimarisi ve Veri Odaklı Tasarım
 
-İlk sürümde hitscan tabanlı silah sistemi kullanılacak.
-
-Atış akışı:
-
-1. İstemci ateş girdisini gönderir.
-2. Sunucu oyuncunun hayatta olup olmadığını kontrol eder.
-3. Silahın ateş edebilir durumda olup olmadığını kontrol eder.
-4. Mühimmat ve ateş aralığını doğrular.
-5. Unity Physics ile ışın veya kalın ışın sorgusu gerçekleştirir.
-6. Duvar ve engel kontrollerini yapar.
-7. İsabet varsa hasarı sunucu uygular.
-8. İlgili istemcilere ateş ve hasar olaylarını gönderir.
-
-İlk sürümde gelişmiş lag compensation zorunlu değildir. Önce temel çatışma sistemi çalıştırılır; internet testlerinde adalet sorunu görülürse geçmiş oyuncu konumlarını saklayan bir sistem eklenir.
-
-## 6. Oyun sistemleri
-
-Oyun sistemleri ayrı sorumluluklara sahip bileşenler olarak geliştirilecek.
-
-| Sistem | Sorumluluk |
-|---|---|
-| Player System | Oyuncu durumu ve hareket |
-| Combat System | Ateş, isabet ve hasar |
-| Weapon System | Silah ve mühimmat |
-| Inventory System | Eşya ve ekipman |
-| Loot System | Yerdeki eşyalar ve sandıklar |
-| Operator System | Aktif ve pasif yetenekler |
-| Zone System | AURA güvenli alanı |
-| Match System | Maç aşamaları ve sonuç |
-| Bot System | Test amaçlı yapay oyuncular |
-
-Her sistemin oyun kurallarına ilişkin kararları sunucuda verilir.
-
-## 7. ScriptableObject ve oyun verileri
-
-Denge değerleri kodun içine sabit yazılmayacak.
-
-Kullanılacak temel veri varlıkları:
-
-- OperatorDefinition
-- AbilityDefinition
-- WeaponDefinition
-- AmmoDefinition
-- ItemDefinition
-- LootTable
-- ZonePhaseTable
-- MatchSettings
-- MoveParams
-
-ScriptableObject'ler tasarım ve ayar verilerini tutar. Çalışma sırasında oyun sistemleri bu verileri okur.
-
-İstemci ve sunucu arasında önemli yapılandırma farklılıklarını yakalamak için ileride konfigürasyon sürümü veya hash kontrolü eklenebilir.
-
-## 8. Backend yaklaşımı
-
-Backend ilk prototipin parçası olmayacak.
-
-İlk bağlantı yöntemi doğrudan IP üzerinden olacak. Böylece hesap sistemi, eşleştirme, veritabanı ve sunucu yönetimi geliştirmeyi geciktirmeyecek.
-
-Backend daha sonra şu görevleri üstlenecek:
-
-- Hesap ve oyuncu kimliği.
-- Lobi ve eşleştirme.
-- Oyun sunucusu başlatma ve yönetme.
-- Maç sonuçlarını kaydetme.
-- Gerekirse kalıcı oyuncu verileri.
-
-Backend, Unity fizik simülasyonunu çalıştırmayacak. Fizik simülasyonunun tek sahibi oyun sunucusudur.
-
-## 9. Proje klasör yapısı
+Tüm tasarım parametreleri koddan tamamen izole edilir:
 
 ```text
-LOST-ISLAND/
-│
+Assets/_Project/Data/
+├── Operators/          # OperatorDefinition (İZ, KİLİT, AKS, EKO)
+├── Abilities/          # AbilityDefinition (Bekleme süreleri, menziller, etki verileri)
+├── Weapons/            # WeaponDefinition (Hasar, atış oranı, şarjör, sekme eğrisi)
+├── Ammo/               # AmmoDefinition (Mühimmat türleri ve taşıma limitleri)
+├── LootTables/         # LootTable (Sandık düşme olasılık matrisleri)
+├── Zone/               # ZonePhaseTable (Daralma süreleri, yarıçaplar, DPS hasarı)
+└── Events/             # ScriptableObject Game Events (Sahneler arası kanallar)
+```
+
+**Kural:** Sayısal oyun parametrelerini değiştirmek için kod derlemesi gerekmez; tüm değerler Unity Editor Inspector üzerinden canlı ayarlanabilir.
+
+---
+
+## 9. Profesyonel Kodlama & Performans Standartları
+
+### 9.1. SOLID Prensipleri
+- **Single Responsibility (SRP):** Bir sınıf yalnızca tek bir işi yönetir (Örn: `PlayerMovement`, `PlayerCombat`, `PlayerAnimation` ayrı sınıflardır).
+- **Open/Closed (OCP):** Yeni operatörler veya yetenekler ana kodu değiştirmeden `AbilityBase` veya `WeaponBase` türetilerek eklenir.
+- **Interface Segregation (ISP):** Geniş arayüzler yerine küçük, odaklı arayüzler: `IDamageable`, `IInteractable`, `IHealable`, `IPoolable`.
+- **Dependency Inversion (DIP):** Sınıflar somut implementasyonlara değil, soyutlamalara (arayüzlere ve SO Event kanallarına) bağımlı olur.
+
+### 9.2. Sıfır Bellek Tahsisi (Zero GC Allocation) & Object Pooling
+- Çalışma anında sık tekrarlanan nesneler için `Instantiate()` ve `Destroy()` kullanımı yasaktır.
+- `ObjectPool<T>` mimarisi uygulanır:
+  - Mermiler ve Kovanlar
+  - Parçacık Efektleri (VFX)
+  - Zemin Ayak İzleri ve Mermi Delikleri
+  - Yüzen Hasar Metinleri (Damage Popup UI)
+  - 3D Ses Kaynakları (AudioSource havuzu)
+
+### 9.3. Durum Makineleri (State Machine)
+- **Karakter Durumu:** `Idle`, `Walking`, `Sprinting`, `Aiming`, `CastingAbility`, `Dead` durumları temiz bir `PlayerStateMachine` ile yönetilir.
+- **Maç Durumu:** `MatchStateMachine` (WaitingForPlayers, StartingCountdown, InProgress, MatchEnded, Summary).
+
+---
+
+## 10. Proje Klasör ve Assembly (asmdef) Yapısı
+
+```text
+LOST ISLAND/
 ├── Client/
-│   └── UnityProject/
-│       ├── Assets/
-│       │   └── _Project/
-│       │       ├── Art/
-│       │       ├── Audio/
-│       │       ├── Data/
-│       │       ├── Materials/
-│       │       ├── Prefabs/
-│       │       ├── Scenes/
-│       │       ├── Scripts/
-│       │       │   ├── Core/
-│       │       │   ├── Networking/
-│       │       │   ├── Player/
-│       │       │   ├── Combat/
-│       │       │   ├── Weapons/
-│       │       │   ├── Inventory/
-│       │       │   ├── Loot/
-│       │       │   ├── Operators/
-│       │       │   ├── Zone/
-│       │       │   ├── Match/
-│       │       │   ├── Bots/
-│       │       │   ├── UI/
-│       │       │   └── Editor/
-│       │       └── Settings/
-│       ├── Packages/
-│       └── ProjectSettings/
-│
-├── Backend/
-│   └── (ileride)
-│
-├── Tests/
-│
-├── Tools/
-│
-├── Docs/
-│   ├── README_LOST_ISLAND.md
-│   └── README_DEV_PLAN.md
-│
-└── README.md
+│   └── Assets/
+│       └── _Project/
+│           ├── Assemblies/                     # Bağımsız derleme birimleri
+│           │   ├── LostIsland.Core.asmdef      # EventBus, ObjectPool, Interfaces
+│           │   ├── LostIsland.Data.asmdef      # ScriptableObject tanımları
+│           │   ├── LostIsland.Gameplay.asmdef  # Player, Combat, Weapons, Loot, Zone
+│           │   ├── LostIsland.Network.asmdef   # Mirror network köprüleri
+│           │   └── LostIsland.UI.asmdef        # Reaktif HUD ve ekranlar
+│           ├── Data/                           # ScriptableObject varlıkları
+│           ├── Prefabs/                        # Karakter, silah, mermi, sandık
+│           ├── Scenes/                         # Bootstrap, Menu, Prototype_AURA01
+│           └── Scripts/
+│               ├── Core/
+│               │   ├── Events/                 # EventBus, GameEvent ScriptableObjects
+│               │   ├── Pooling/                # ObjectPool ve IPoolable
+│               │   ├── StateMachine/           # State, StateMachine taban sınıfları
+│               │   └── Interfaces/             # IDamageable, IInteractable
+│               ├── Data/                       # SO C# sınıfları
+│               ├── Player/                     # Karakter hareket, kamera, girdi
+│               ├── Combat/                     # Hasar, sağlık, zırh mantığı
+│               ├── Weapons/                    # Silah ateşleme, şarjör
+│               ├── Operators/                  # Aktif & pasif operatör sınıfları
+│               ├── Loot/                       # Sandık, yer eşyası, envanter
+│               ├── Zone/                       # AURA güvenli alan çemberi
+│               ├── Networking/                 # Mirror mesaj yöneticileri
+│               └── UI/                         # Reaktif HUD, menüler
 ```
 
-İstemci ve dedicated server aynı Unity projesinden build alınarak üretilecek. Böylece iki ayrı oyun projesinin bakım yükü oluşmayacak.
+---
 
-## 10. Geliştirme yol haritası
+## 11. Geliştirme Yol Haritası (Milestones)
 
-| Aşama | İçerik | Tamamlanma ölçütü |
+| Aşama | Odak & Kapsam | Tamamlanma Ölçütü (Definition of Done) |
 |---|---|---|
-| M0 | Unity projesi, Git, Mirror kurulumu | Proje ve test sahnesi hazır |
-| M1 | Dedicated Server ve oyuncu hareketi | İki istemci aynı sunucuda hareket edebiliyor |
-| M2 | Çatışma | İki oyuncu birbirine ateş edip hasar verebiliyor |
-| M3 | Loot ve envanter | Eşya alma, silah değiştirme ve mühimmat |
-| M4 | İlk operatör: İZ | Aktif ve pasif yetenek çalışıyor |
-| M5 | Maç döngüsü | Başlangıç, AURA daralması, eleme ve sonuç |
-| M6 | AURA-01 haritası | Blockout harita ve çevresel engeller |
-| M7 | Botlar ve test | Botlarla tek başına maç testi |
-| M8 | Backend ve internet testi | Lobi, bağlantı ve gerçek oyuncu testi |
-| M9 | İçerik üretimi | Modeller, animasyonlar, ses ve yeni operatörler |
+| **M0** | Proje Temeli, Asmdef, Git, Mirror | Unity 6 projesi, temiz katmanlı klasör yapısı ve Mirror hazır. |
+| **M1** | **Core Event & Architecture Foundation** | `EventBus`, `ScriptableObject GameEvent` sistemi ve `ObjectPool` devrede. Yeni Input System ile decoupled girdi yayını. |
+| **M2** | **Karakter Hareketi & Kamera** | İzometrik kamera ve sunucu otoriteli XZ hareketi. Giriş -> Olay -> Simülasyon döngüsü çalışıyor. |
+| **M3** | **Event-Driven Çatışma & Silah** | Hitscan atış, Object Pool ile mermiler. `IDamageable`, `OnHealthChanged`, `OnHitConfirmed` olayları ile çalışan reaktif HUD (Sıfır polling). |
+| **M4** | **Loot & Envanter Mekaniği** | Yerden eşya alma, sandık açma (`OnItemPickedUp`, `OnInventoryChanged`). Mühimmat ve silah değiştirme eventleri. |
+| **M5** | **İlk Operatör: İZ** | İZ aktif (İz Taraması) ve pasif yeteneği. Yetenek HUD'u ve eventleri (`OnAbilityCast`, `OnAbilityCooldownChanged`). |
+| **M6** | **AURA Güvenli Alanı & Maç Döngüsü** | Daralan çember, alan dışı hasar eventi, maç başlangıç ve sonuç state machine'i. |
+| **M7** | **AURA-01 Harita Blockout & Ses/VFX** | Modüler test haritası. Ses ve efekt sistemlerinin olaylara tam entegrasyonu. |
+| **M8** | **Botlar & Çok Oyunculu Stres Testi** | Dedicated Server üzerinde 20 bot/oyuncu ile event senkronizasyonu ve performans profilleme. |
+| **M9** | **İçerik & Denge** | Diğer operatörler (KİLİT, AKS, EKO), yeni silahlar ve son görsel cila. |
 
-Milestone süreleri, okul ve diğer sorumluluklarla birlikte gerçek geliştirme hızına göre belirlenecek. Takvim tahminleri kesin teslim tarihi değildir.
+---
 
-## 11. İlk prototipin kapsamı
+## 12. İlk Prototipin Kapsamı & Kabul Kriterleri
 
-İlk hedef tam oyun değil, temel oynanışın çalıştığı küçük bir sürümdür.
+İlk hedefimiz geniş kapsamlı bir içerik yığını değil; **mimari olarak temiz, event tabanlı ve son derece akıcı bir dikey kesittir (vertical slice).**
 
-İçerik:
-
-- İzometrik kamera.
-- Oyuncu hareketi.
-- Unity Physics çarpışmaları.
-- Mirror bağlantısı.
-- Dedicated Server.
-- Bir saldırı tüfeği.
-- Can ve hasar.
-- Yerde eşya alma.
-- Basit envanter.
-- Bir sandık.
-- İZ operatörü.
-- Basit AURA güvenli alanı.
-- Küçük test haritası.
-- Maç başlangıcı ve bitişi.
-
-İlk prototipte ertelenecekler:
-
-- Tam hesap ve arkadaş sistemi.
-- Eşleştirme altyapısı.
-- Gelişmiş lag compensation.
-- Karmaşık envanter ve silah eklentileri.
-- Çok katlı binalar.
-- Gelişmiş görüş/duvar arkası filtreleri.
-- Çok sayıda operatör.
-- Kozmetik ve mağaza sistemi.
-
-## 12. Teknik öncelik
-
-Her aşamada önce çalışan ve test edilebilen bir sistem üretilecek.
-
-Bir sistemin tamamlanma ölçütü yalnızca kodun yazılmış olması değil, Unity içinde test edilmiş ve diğer sistemlerle çalışıyor olmasıdır.
-
-**İlk teknik hedef: İki istemci, bir dedicated server ve Unity Physics ile çalışan oyuncu hareketi.**
+### Kabul Kriterleri (DoD - Definition of Done):
+1. **Mimari:** Kod tabanında UI veya ses sistemlerinin doğrudan oynanış sınıflarına tight-coupled referans tutmaması; her şeyin eventler üzerinden akması.
+2. **Sıfır Polling:** HUD veya herhangi bir arayüz elemanının `Update()` döngüsünde veri sorgulamaması.
+3. **Performans:** Çatışma anında hiçbir mermi veya parçacık efekti için `Instantiate/Destroy` çağrılmaması (Object Pooling zorunlu).
+4. **Oynanış:** İki istemcinin dedicated server'a bağlanarak izometrik açıda hareket edebilmesi, silah toplayıp birbirine ateş edebilmesi, hasarın ve eleme durumunun reaktif HUD'a kusursuz yansıması.

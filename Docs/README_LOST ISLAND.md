@@ -527,20 +527,22 @@ Ses tasarımında silahlar, adım sesleri, yetenek etkinleşmeleri, ganimet aç�
 
 ## 16. Arayüz ve kullanıcı deneyimi
 
-İlk arayüz tasarımında öncelik, maç sırasında gerekli bilgileri oyuncuya hızlı ve anlaşılır biçimde sunmaktır.
+İlk arayüz tasarımında öncelik, maç sırasında gerekli bilgileri oyuncuya hızlı, temiz ve anlaşılır biçimde sunmaktır.
+
+### Reaktif ve Olay Güdümlü HUD İlkesi (Sıfır Polling)
+Arayüz bileşenleri `Update()` döngüsü içerisinde her karede veri çekmez (polling yapılmaz). Can, mühimmat, yetenek süresi veya bölge bilgisi değiştiğinde fırlatılan C# ve ScriptableObject olaylarına abone olunur; UI yalnızca veri değiştiğinde kendini günceller. Bu, gereksiz işlemci yükünü sıfırlarken kusursuz bir tepki süresi sağlar.
 
 ### Oyun içi HUD için düşünülen öğeler
-
-- Sağlık ve varsa zırh göstergesi.
-- Mevcut silah ve mühimmat.
-- Aktif yetenek ve bekleme süresi.
-- Envanter/ekipman göstergesi.
-- Güvenli alan ve sonraki daralma bilgisi.
-- Kalan oyuncu veya takım sayısı.
-- Mini harita ve takım işaretleri (takım modlarında).
+- **Sağlık ve Zırh Barı:** `OnHealthChanged` ve `OnShieldChanged` eventlerine reaktif bağlı.
+- **Mevcut Silah ve Mühimmat Sayacı:** `OnAmmoChanged` ve `OnWeaponSwapped` eventleri ile güncellenir.
+- **Aktif Yetenek Göstergesi:** `OnAbilityCast` ve `OnAbilityCooldownChanged` ile dinamik dolum çemberi.
+- **Envanter ve Ekipman Tablosu:** `OnInventoryChanged` eventiyle tetiklenen hızlı görsel yuvalar.
+- **Güvenli Alan Bilgilendirmesi:** `OnZonePhaseChanged` ile kalan süre, aşama ve rota uyarısı.
+- **Kalan Oyuncu / Takım Sayacı:** `OnPlayerCountChanged` eventiyle canlı güncellenen rekabet paneli.
+- **Yüzen Hasar ve Vuruş Geri Bildirimi:** `OnHitConfirmed` ve `OnDamageTaken` ile nesne havuzundan (ObjectPool) çağrılan hasar sayıları (Damage Popup).
+- **Mini Harita:** Çevreleyen alan sınırını ve takım arkadaşlarını gösteren dinamik radar.
 
 ### Menü ekranları
-
 - Ana menü.
 - Operatör seçimi.
 - Oyun modu ve eşleştirme.
@@ -554,78 +556,92 @@ Ses tasarımında silahlar, adım sesleri, yetenek etkinleşmeleri, ganimet aç�
 
 ## 17. Teknik yön ve Unity yapısı
 
+LOST ISLAND, endüstri standardı **profesyonel yöntemler**, **sunucu otoriteli (server-authoritative)** yapı ve **olay güdümlü mimari (Event-Driven Architecture)** prensipleriyle geliştirilmektedir.
+
 ### Şu anki teknik tercihler
 
-| Alan | Tercih |
-|---|---|
-| Motor | Unity 6 |
-| Render Pipeline | URP |
-| Kamera | Orthographic izometrik |
-| Model stili | Stylized, düşük/orta poligon |
-| Materyal | Stilize PBR |
-| Efektler | Particle System ve Shader Graph |
-| Animasyon | Humanoid Rig |
+| Alan | Tercih | Standart |
+|---|---|---|
+| Motor | Unity 6 | LTS stabilite, URP desteği |
+| Render Pipeline | URP | Universal Render Pipeline, optimize mobil/PC performansı |
+| Kamera | Orthographic izometrik | Temiz görüş açısı ve rekabetçi okunabilirlik |
+| Ağ Mimarisi | Mirror + KCP | Düşük gecikmeli UDP, Dedicated Server otoritesi |
+| Yazılım Mimarisi | Event-Driven & Decoupled | ScriptableObject Game Events, C# Action/Events, Observer Pattern |
+| Bellek & Performans | Object Pooling | Mermiler, VFX, SFX ve metinler için sıfır GC tahsisi |
+| Kod Modülerliği | Assembly Definitions (asmdef) | Katmanlı mimari, sirküler bağımlılıkları engelleme |
+| Giriş Sistemi | Unity New Input System | C# Event tabanlı, çoklu girdi aygıtı desteği |
+| Model stili | Stylized, düşük/orta poligon | Yüksek kare hızı ve silüet netliği |
+| Materyal | Stilize PBR | Dengeli ışıklandırma ve görsel hiyerarşi |
+| Efektler | Particle System ve Shader Graph | Performanslı görsel efektler |
+| Animasyon | Humanoid Rig | Modüler operatör animasyon hattı |
+
+### Profesyonel Kodlama & Mimari Standartları
+
+1. **Olay Güdümlü Sistemler (Event-Driven Architecture):**
+   - Sınıflar birbirine doğrudan sıkı referanslar bağlamaz (Loose Coupling).
+   - Oynanış mantığı (Combat, Health, Zone), UI veya Ses sistemlerini doğrudan çağırmaz. Sistemler event yayınlar; UI, VFX ve SFX dinleyici olarak reaksiyon verir.
+2. **Sıfır Polling Prensibi (Push-based Architecture):**
+   - `Update()` içinde değişken yoklama (polling) kesinlikle yasaktır.
+3. **ScriptableObject Odaklı Tasarım (Data-Driven):**
+   - Tüm silah, zırh, operatör ve yetenek dengesi ScriptableObject varlıkları üzerinden yönetilir; kodun içine sabit sayı yazılmaz.
+4. **Merkezi Nesne Havuzlama (Object Pooling):**
+   - Çatışma anında kare atlamalarını (GC lag spikes) önlemek amacıyla mermiler, efektler ve ses kaynakları havuzlanır; `Instantiate` ve `Destroy` çalışma zamanında çağrılmaz.
+5. **Modüler Assembly Definition Yapısı:**
+   - Proje katmanları izole asmdef dosyaları ile ayrılır (`Core`, `Gameplay`, `Networking`, `UI`).
 
 ### Önerilen başlangıç klasör yapısı
 
 ```text
 Assets/
-├── Art/
-│   ├── Characters/
-│   ├── Environment/
-│   ├── Weapons/
-│   ├── Props/
-│   └── Materials/
-├── Audio/
-│   ├── Music/
-│   ├── SFX/
-│   └── Voice/
-├── Prefabs/
-│   ├── Characters/
-│   ├── Weapons/
-│   ├── Loot/
-│   ├── Environment/
-│   └── UI/
-├── Scenes/
-│   ├── Bootstrap/
-│   ├── MainMenu/
-│   ├── Prototype_AURA01/
-│   └── Match/
-├── Scripts/
-│   ├── Characters/
-│   ├── Abilities/
-│   ├── Combat/
-│   ├── Weapons/
-│   ├── Inventory/
-│   ├── Loot/
-│   ├── Match/
-│   ├── SafeZone/
-│   ├── Camera/
-│   └── UI/
-├── Settings/
-└── UI/
+└── _Project/
+    ├── Assemblies/             # LostIsland.Core, Gameplay, Network, UI asmdef'leri
+    ├── Art/
+    │   ├── Characters/
+    │   ├── Environment/
+    │   ├── Weapons/
+    │   ├── Props/
+    │   └── Materials/
+    ├── Audio/
+    │   ├── Music/
+    │   └── SFX/
+    ├── Data/                   # ScriptableObject Tanımları ve SO Game Events
+    │   ├── Operators/
+    │   ├── Weapons/
+    │   ├── Zone/
+    │   └── Events/
+    ├── Prefabs/
+    │   ├── Characters/
+    │   ├── Weapons/
+    │   ├── Loot/
+    │   ├── VFX/
+    │   └── UI/
+    ├── Scenes/
+    │   ├── Bootstrap/
+    │   ├── MainMenu/
+    │   └── Prototype_AURA01/
+    └── Scripts/
+        ├── Core/               # EventBus, ObjectPool, Interfaces (IDamageable, IPoolable)
+        ├── Networking/         # Mirror senkronizasyonu ve sunucu RPC yöneticileri
+        ├── Player/             # Hareket, izometrik kamera ve girdi dinleyicileri
+        ├── Combat/             # Hasar alma, can, zırh, vuruş doğrulaması
+        ├── Weapons/            # Silah atış mantığı ve şarjör yönetimi
+        ├── Operators/          # Aktif ve pasif operatör yetenek sınıfları
+        ├── Loot/               # Sandık açma, yer eşyası ve envanter
+        ├── Zone/               # AURA çevreleme alanı ve alan dışı hasar
+        └── UI/                 # Reaktif HUD ve menü denetleyicileri
 ```
-
-Bu klasör yapısı öneridir; mevcut Unity projesinin yapısına göre uyarlanabilir.
 
 ### Önce geliştirilecek sistemler
 
-1. İzometrik kamera ve karakter hareketi.
-2. Nişan alma ve temel ateş etme.
-3. Sağlık ve hasar sistemi.
-4. Silah toplama ve değiştirme.
-5. Basit envanter ve mühimmat.
-6. Sandık açma ve loot üretme.
-7. İZ'in aktif/pasif yeteneği.
-8. Güvenli alan daralması.
-9. Maç başlangıcı, eleme ve maç sonucu.
-10. Çok oyunculu altyapı ve sunucu otoritesi.
-
-### Ağ mimarisi
-
-LOST ISLAND çok oyunculu bir Battle Royale olarak tasarlanmaktadır. Ancak ağ kütüphanesi, sunucu modeli, eşleştirme sistemi ve otorite yapısı henüz kesin olarak seçilmemiştir. Bu karar verilmeden belirli bir networking çözümüne bağlı kod mimarisi kurulmamalıdır.
-
-Çok oyunculu aşamada oyuncu hareketi, silah atışları, hasar, ganimet ve yetenek kullanımlarının hangi tarafça doğrulanacağı açıkça tanımlanmalıdır. Rekabetçi oyun için sunucu otoritesi değerlendirilmelidir.
+1. **Mimari Çekirdek:** EventBus, ScriptableObject GameEvent altyapısı ve ObjectPool sistemi.
+2. **Kamera ve Hareket:** İzometrik kamera ve New Input System tabanlı sunucu onaylı karakter kontrolü.
+3. **Event-Driven Çatışma:** Hitscan silah atışı, `IDamageable`, `OnHealthChanged` ve `OnHitConfirmed` olayları.
+4. **Reaktif Arayüz:** Sıfır polling ile çalışan dinamik can barı ve mühimmat sayacı.
+5. **Loot ve Envanter:** Sandık açma, silah toplama ve mühimmat eşitleme.
+6. **Operatör Sistemi:** İZ operatörünün aktif (İz Taraması) ve pasif yeteneği.
+7. **AURA Güvenli Alanı:** Zaman ayarlı daralan çember ve alan hasarı eventleri.
+8. **Ağ Doğrulaması:** Dedicated Server üzerinde hareket, vuruş ve maç döngüsü kontrolü.
+9. **Maç Durum Makinesi:** Lobi, geri sayım, aktif çatışma, eleme ve sonuç ekranı.
 
 ---
 
@@ -662,67 +678,63 @@ LOST ISLAND çok oyunculu bir Battle Royale olarak tasarlanmaktadır. Ancak ağ 
 
 ## 19. Üretim yol haritası
 
-### Aşama 1 — Oynanış temeli
+### Aşama 1 — Oynanış ve Olay Güdümlü Temel (Core & Architecture)
 
-- İzometrik kamera kurulumu.
-- Geçici karakter modeli ve hareket.
-- Nişan alma ve ateş etme.
-- İlk silah.
-- Sağlık ve hasar.
+- EventBus, ScriptableObject GameEvent ve ObjectPool çekirdek mimarisinin kurulması.
+- Unity New Input System ile event bazlı girdi yayını.
+- İzometrik kamera kurulumu ve karakter hareketi.
+- İlk silah mekaniği (hitscan atış ve object pooling ile mermiler).
+- Event-driven sağlık, can barı ve hasar sistemi (`OnDamageTaken`, `OnHealthChanged`).
+- Reaktif HUD (Sıfır polling ile çalışan dinamik arayüz).
 
-**Çıkış ölçütü:** Oyuncu küçük bir alanda hareket edip hedefe ateş edebilmeli.
+**Çıkış ölçütü:** Oyuncu sahnede hareket edip hedefe ateş edebilmeli; can ve mühimmat event-driven olarak HUD'a anlık yansımalı.
 
-### Aşama 2 — Loot ve operatör
+### Aşama 2 — Loot ve Operatör Sistemi
 
-- Silah toplama ve değiştirme.
-- Sandık açma.
-- Basit envanter.
-- İZ'in aktif ve pasif yeteneği.
-- Yetenek HUD göstergesi.
+- Silah toplama, envanter ve mühimmat eventleri (`OnItemPickedUp`, `OnAmmoChanged`).
+- Sandık açma mekaniği.
+- İZ'in aktif (İz Taraması) ve pasif yeteneği.
+- Yetenek HUD göstergesi ve bekleme süresi eventleri.
 
-**Çıkış ölçütü:** Oyuncu haritayı keşfedip ekipman toplayabilmeli ve karakter yeteneğini kullanabilmeli.
+**Çıkış ölçütü:** Oyuncu haritayı keşfedip ekipman toplayabilmeli, yeteneğini kullanabilmeli ve tüm bu akış loosely-coupled eventlerle çalışmalı.
 
-### Aşama 3 — Harita ve Battle Royale döngüsü
+### Aşama 3 — Harita ve Battle Royale Döngüsü
 
-- AURA-01 blockout.
-- Farklı bölgeler ve bina girişleri.
-- Ganimet noktaları.
-- Güvenli alan daralması.
-- Maç başlangıcı ve sonuç ekranı.
+- AURA-01 blockout haritası.
+- Farklı bölgeler ve bina girişleri (çatı gizleme/şeffaflaşma).
+- Ganimet noktaları ve sandık dağılımı.
+- Güvenli alan daralma mekaniği (`OnZonePhaseChanged`).
+- Maç durum makinesi (State Machine: başlangıç, eleme ve sonuç ekranı).
 
-**Çıkış ölçütü:** Baştan sona oynanabilen temel bir maç döngüsü oluşmalı.
+**Çıkış ölçütü:** Baştan sona tek oyunculu olarak oynanabilen temel bir maç döngüsü oluşmalı.
 
-### Aşama 4 — Çok oyunculu prototip
+### Aşama 4 — Çok Oyunculu Prototip (Dedicated Server)
 
-- Ağ mimarisinin seçilmesi.
-- Oyuncu bağlantısı ve maç oluşturma.
-- Hareket ve çatışma senkronizasyonu.
-- Ganimet ve yetenek doğrulaması.
+- Mirror + KCP ağ entegrasyonu.
+- Sunucu otoriteli hareket, çatışma ve hasar doğrulaması.
+- Ağ olayları (RPC/Commands) ile istemci-sunucu event köprüsünün bağlanması.
 - Oyuncu elenmesi ve maç sonucunun sunucu tarafından yönetilmesi.
 
-**Çıkış ölçütü:** Birden fazla oyuncu aynı maçta güvenilir biçimde mücadele edebilmeli.
+**Çıkış ölçütü:** Birden fazla oyuncu aynı dedicated server'da adil ve güvenilir biçimde mücadele edebilmeli.
 
-### Aşama 5 — Görsel kalite ve içerik
+### Aşama 5 — Görsel Kalite, Ses ve İçerik
 
 - İZ'in nihai modeli ve animasyonları.
-- AURA-01 çevre modelleri.
-- Materyal ve ışıklandırma.
-- Ses ve görsel efektler.
+- AURA-01 çevre modelleri, materyal ve URP ışıklandırması.
+- Olaylara bağlı ses (SFX) ve görsel efektler (VFX) entegrasyonu.
 - KİLİT, AKS ve EKO operatörleri.
-- Diğer silah ve ganimet türleri.
+- Diğer silah sınıfları (Shotgun, SMG, Sniper, LMG) ve ganimet sandıkları.
 
-**Çıkış ölçütü:** Prototip, LOST ISLAND'ın hedeflenen görsel kimliğini yansıtmalı.
+**Çıkış ölçütü:** Prototip, LOST ISLAND'ın hedeflenen görsel kimliğini ve atmosferini yansıtmalı.
 
-### Aşama 6 — Denge ve performans
+### Aşama 6 — Denge, Optimizasyon ve Profilleme
 
-- Silah dengesi.
-- Operatör yetenek dengesi.
-- Ganimet dağılımı.
-- Güvenli alan temposu.
-- Harita rotaları ve iniş noktaları.
-- FPS, bellek ve ağ performansı.
+- Silah ve operatör yetenek dengesi.
+- Sıfır GC tahsisi optimizasyonları ve nesne havuzlama doğrulaması.
+- Güvenli alan temposu ve ganimet dağılımı.
+- FPS, bellek ve ağ paketi optimizasyonu (profiler testleri).
 
-**Çıkış ölçütü:** Maçlar adil, anlaşılır ve tekrar oynanabilir olmalı.
+**Çıkış ölçütü:** Maçlar adil, anlaşılır, stabil ve yüksek performansla tekrar oynanabilir olmalı.
 
 ---
 
@@ -740,7 +752,7 @@ Aşağıdaki konular fikir aşamasındadır ve test edilmeden kesin tasarım kar
 - Operatör yeteneklerinin kesin değerleri ve bekleme süreleri.
 - Güvenli alanın aşama sayısı, süresi ve hasarı.
 - AURA çevreleme sisteminin nihai görsel/işitsel sunumu.
-- Ağ kütüphanesi, sunucu altyapısı ve eşleştirme çözümü.
+- Backend eşleştirme (matchmaking) ve sunucu yönetim servisi mimarisi.
 - AURA verisinin maç içindeki rolü: yalnızca hikâye/yan hedef mi, yoksa özel bir final amacı mı?
 - Karakterlerin kişisel geçmişleri ve AURA olayının gerçek nedeni.
 

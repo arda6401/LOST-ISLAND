@@ -3,10 +3,10 @@
 [![Unity Version](https://img.shields.io/badge/Unity-6%20(6000.x)-blue.svg?logo=unity)](https://unity.com/)
 [![Render Pipeline](https://img.shields.io/badge/URP-Universal%20Render%20Pipeline-lightgrey.svg)](https://unity.com/srp/Universal-Render-Pipeline)
 [![Networking](https://img.shields.io/badge/Networking-Mirror%20%2B%20KCP-orange.svg)](https://mirror-networking.gitbook.io/docs/)
-[![Architecture](https://img.shields.io/badge/Model-Dedicated%20Server%20(Authoritative)-green.svg)](#teknik-mimari)
+[![Architecture](https://img.shields.io/badge/Architecture-Event--Driven%20%2B%20Authoritative-green.svg)](#teknik-mimari)
 [![Camera](https://img.shields.io/badge/Camera-Isometric%20Orthographic-purple.svg)](#genel-bakış)
 
-> **LOST ISLAND**, yakın gelecekte geçen; oyuncuların maç öncesinde özel yeteneklere sahip operatörler seçtiği, maç sırasında silah ve ekipman topladığı, daralan güvenli alanda hayatta kalmaya çalıştığı **izometrik (orthographic) bir Battle Royale** oyunudur.
+> **LOST ISLAND**, yakın gelecekte geçen; oyuncuların maç öncesinde özel yeteneklere sahip operatörler seçtiği, maç sırasında silah ve ekipman topladığı, daralan güvenli alanda hayatta kalmaya çalıştığı **izometrik (orthographic) bir Battle Royale** oyunudur. Profesyonel oyun geliştirme standartlarına uygun olarak **sunucu otoriteli (server-authoritative)** ve **olay güdümlü (event-driven)** bir mimari üzerine inşa edilmektedir.
 
 ---
 
@@ -18,7 +18,7 @@
 - [Operatör Kadrosu](#-operatör-kadrosu)
 - [Silah ve Ganimet (Loot) Sistemi](#-silah-ve-ganimet-loot-sistemi)
 - [Harita: AURA-01 Saha İstasyonu](#-harita-aura-01-saha-istasyonu)
-- [Teknik Mimari](#-teknik-mimari)
+- [Teknik Mimari & Yazılım Prensipleri](#-teknik-mimari--yazılım-prensipleri)
 - [Proje Dizin Yapısı](#-proje-dizin-yapısı)
 - [Geliştirme Yol Haritası](#-geliştirme-yol-haritası)
 - [Başlarken ve Kurulum](#-başlarken-ve-kurulum)
@@ -35,6 +35,7 @@
 | **Görsel Stil** | Dengeli Stylized 3D |
 | **Oyun Motoru** | Unity 6 + URP (Universal Render Pipeline) |
 | **Ağ Mimarisi** | Dedicated Server (Sunucu Otoriteli), Mirror + KCP Transport |
+| **Yazılım Deseni** | Event-Driven Architecture (EDA), ScriptableObject Architecture, SOLID |
 | **Modlar** | Solo, Duo, Squad (İlk prototip hedefi: 20 oyuncu/bot) |
 | **Maç Süresi** | 10 – 15 Dakika (Hızlı ve taktiksel çatışmalar) |
 
@@ -47,6 +48,8 @@
 3. **Anlamlı Keşif ve Risk:** Harita bölgeleri farklı ganimet yoğunluğu, görüş açısı ve risk seviyesi sunar.
 4. **Adil Rekabet:** Yetenekler bilgi, koruma veya hareket avantajı sağlar; kaçınılmaz ve tek taraflı doğrudan üstünlük üretmez.
 5. **Sunucu Otoritesi:** Hile ve desenskronizasyonu engellemek adına hareket, hasar, atış ve ganimet onayları tamamen sunucu kontrolündedir.
+6. **Olay Güdümlü & Ayrık Mimari (Event-Driven & Decoupled Architecture):** Sistemler birbirine doğrudan bağımlı (tightly coupled) olmaz. Bütün oyun içi durum değişimleri, etkileşimler ve arayüz güncellemeleri event-driven (Observer, SO Game Events, EventBus) yöntemlerle yönetilir.
+7. **Sıfır Polling ve Temiz Kod:** UI, ses ve VFX sistemleri `Update()` içerisinde sürekli değişken kontrolü yapmaz (polling yapılmaz); yalnızca ilgili olay tetiklendiğinde (push-based) reaktif olarak çalışır. Modüler Assembly Definition (asmdef) yapısıyla derleme süreleri optimize edilir ve mimari katman sınırları korunur.
 
 ---
 
@@ -125,32 +128,66 @@ Ana araştırma sistemlerinde yaşanan büyük bir arıza ve arıza sonrası dev
 
 ---
 
-## ⚙️ Teknik Mimari
+## ⚙️ Teknik Mimari & Yazılım Prensipleri
 
-Oyun, güvenilir rekabetçi standartları korumak amacıyla **sunucu otoriteli (server-authoritative)** mimariyle inşa edilmektedir.
+LOST ISLAND, yüksek rekabetçi adalet, yüksek sunucu performansı ve bakım kolaylığı sağlamak için **Sunucu Otoriteli (Server-Authoritative)** ve **Olay Güdümlü (Event-Driven)** bir yazılım mimarisini benimser.
 
 ```text
-                 LOST ISLAND
-                      |
-          +-----------+-----------+
-          |                       |
-     UNITY CLIENT            GAME SERVER
-   Oyuncu İstemcisi       Dedicated Server
-          |                       |
-    - Girişler (Input)      - Oyun Mantığı & Kural Seti
-    - İzometrik Kamera      - Unity Physics (Doğrulama)
-    - HUD / UI Sistemi      - Hasar ve İsabet Kontrolü
-    - Animasyon & VFX       - Loot ve Envanter Yönetimi
-    - SFX / Ses             - AURA Güvenli Alan Çemberi
-          |                       |
-          +------ Mirror/KCP -----+
-                      |
-           (Durum Senkronizasyonu)
+                     LOST ISLAND ENGINE
+                             |
+             +---------------+---------------+
+             |                               |
+       UNITY CLIENT                     GAME SERVER
+     (Oyuncu İstemcisi)              (Dedicated Server)
+             |                               |
+    - Girişler (New Input System)   - Otoriter Oyun Mantığı & Kurallar
+    - İzometrik Kamera Takibi        - Unity Physics (Doğrulama & Raycast)
+    - Reaktif UI / HUD               - Hasar, Vuruş & Eleme Hesaplaması
+    - Görsel Efektler (VFX)          - Loot & Envanter Sunucu Doğrulaması
+    - Ses Sistemi (SFX)              - AURA Çevreleme Alanı Yönetimi
+             |                               |
+             +----------- Mirror/KCP --------+
+                             |
+                  [ AĞ VE DURUM SENKRONİZASYONU ]
+                             |
+             +---------------+---------------+
+             |                               |
+    [ Client EventBus / SO Events ]  [ Server Game Events ]
+             |                               |
+    +--------+--------+              +-------+-------+
+    |        |        |              |       |       |
+  UI/HUD    SFX      VFX            Zone   Combat  Inventory
+ (Reaktif (Sesler) (Parçacık)      (Alan) (Hasar)  (Eşyalar)
+  Panel)
 ```
 
-- **Ağ Katmanı:** [Mirror Networking](https://mirror-networking.gitbook.io/docs/) + **KCP Transport** (Düşük gecikmeli UDP tabanlı bağlantı).
-- **Fizik Simülasyonu:** Unity Physics (XZ hareket düzlemi, Raycast/SphereCast hitscan vuruş tespiti).
-- **Kural:** İstemci eylem talebini iletir (hareket, ateş, loot vb.); nihai durum ve hasar hesaplaması sunucu tarafında yapılır.
+### 💎 Temel Profesyonel Yöntemler ve Event-Driven Yaklaşım
+
+1. **Gevşek Bağlılık ve Olay Güdümlü Sistemler (Decoupling & Event-Driven Architecture):**
+   - Bileşenler asla birbirinin iç detaylarına doğrudan bağlanmaz (tight coupling yasaktır).
+   - Örneğin; `HealthComponent` doğrudan `PlayerHUD` referansı tutmaz veya `hud.UpdateHealthBar()` çağırmaz. Bunun yerine `OnHealthChanged` olayını yayınlar (publish eder).
+   - UI, ses yöneticisi, haptik/kamera sarsıntısı ve görsel efekt sistemleri bu olaya bağımsızca abone olur (subscribe).
+
+2. **Sıfır Polling (Push-Based UI):**
+   - HUD ve arayüz elemanları `Update()` döngüsünde her karede `player.CurrentHealth` veya `player.Ammo` değerini sorgulamaz (polling yapılmaz).
+   - Ekran yalnızca ilgili veri değiştiğinde ve bir event fırlatıldığında anlık olarak güncellenir. Bu, mobil ve PC platformlarında sıfır CPU israfı ve yüksek kare hızı sağlar.
+
+3. **ScriptableObject Mimarisi & Veri Odaklı Tasarım (Data-Driven Architecture):**
+   - Sayısal değişkenler (hasar, hız, menzil, bekleme süreleri) C# sınıfları içerisine sabit kodlanmaz (hardcoded yapılmaz).
+   - `OperatorDefinition`, `WeaponDefinition`, `LootTable`, `ZonePhaseTable` gibi ScriptableObject yapılarıyla oyun tasarımcılarının kodu değiştirmeden denge ayarlaması yapması sağlanır.
+   - ScriptableObject tabanlı `GameEvent` mimarisiyle sahneler ve prefab'lar arasında sahne hiyerarşisinden bağımsız event akışı kurulur.
+
+4. **Nesne Havuzlama (Object Pooling):**
+   - Mermiler, mermi kovanları, vuruş partikülleri, ayak izleri, ses kaynakları ve yüzen hasar metinleri çalışma zamanında sürekli `Instantiate` ve `Destroy` edilmez.
+   - Merkezi bir `ObjectPool` sistemiyle önceden üretilir ve geri dönüştürülür. Çöp toplayıcı (Garbage Collector) duraklamaları ve bellek dalgalanmaları tamamen engellenir.
+
+5. **Modüler Assembly Definition (asmdef) Standartları:**
+   - Kod tabanı izole katmanlara ayrılır (`Core.Events`, `Core.Pooling`, `Gameplay.Combat`, `Gameplay.Player`, `UI`, `Networking`).
+   - Sirküler bağımlılıklar (circular dependencies) engellenir ve Unity derleme süreleri ciddi oranda kısalır.
+
+6. **Sunucu Otoritesi & Network Olayları:**
+   - İstemci yalnızca niyet bildirir (Input/Command). Fiziksel çarpışma, atış isabeti, hasar hesaplaması, eşya alma ve oyuncu eleme kararlarını sunucu verir.
+   - Sunucu, durumu onayladığında bunu ilgili istemcilere güvenilir ağ olayları (TargetRpc, ClientRpc veya NetworkMessage) ile bildirir.
 
 ---
 
@@ -158,17 +195,32 @@ Oyun, güvenilir rekabetçi standartları korumak amacıyla **sunucu otoriteli (
 
 ```bash
 LOST ISLAND/
-├── Client/                 # Unity 6 Projesi (İstemci & Sunucu kodları)
-│   ├── Assets/             # Kodlar, modeller, sahneler, ses ve materyaller
-│   │   ├── Scenes/         # Test ve oyun sahneleri (SampleScene vb.)
-│   │   └── Settings/       # URP ve Render Pipeline konfigürasyonları
-│   ├── Packages/           # Unity paket tanımları (manifest.json)
-│   └── ProjectSettings/    # Unity proje, girdi ve kalite ayarları
-├── Docs/                   # Detaylı dokümantasyonlar
-│   ├── README_LOST ISLAND.md  # Kapsamlı Oyun Tasarımı Dokümanı (GDD)
-│   └── README_DEV_PLAN.md     # Teknik Mimari ve Geliştirme Planı
-├── .gitignore              # Unity ve IDE için optimize edilmiş kurallar
-└── README.md               # Ana proje tanıtımı (bu dosya)
+├── Client/                     # Unity 6 Projesi (Client & Dedicated Server)
+│   ├── Assets/
+│   │   └── _Project/           # Projeye özel ayrılmış ana çalışma dizini
+│   │       ├── Assemblies/     # Modüler Asmdef tanımları
+│   │       ├── Data/           # ScriptableObject veri varlıkları (SO Events, Tanımlar)
+│   │       ├── Prefabs/        # Karakter, silah, mermi, sandık ve UI prefab'ları
+│   │       ├── Scenes/         # Bootstrap, Menü, AURA-01 Harita sahneleri
+│   │       └── Scripts/        # Profesyonel C# Kod Tabanı
+│   │           ├── Core/       # EventBus, ObjectPool, StateMachine, Interfaces
+│   │           │   ├── Events/ # SO Game Events ve C# Event altyapısı
+│   │           │   └── Pool/   # Merkezi Object Pool sistemi
+│   │           ├── Networking/ # Mirror & KCP ağ köprüsü, senkronizasyon yöneticileri
+│   │           ├── Player/     # Hareket, kamera takip, girdi dinleyicileri
+│   │           ├── Combat/     # Hasar, isabet tespiti, can ve kalkan bileşenleri
+│   │           ├── Weapons/    # Silah mekanikleri, ateşleme mantığı
+│   │           ├── Operators/  # Aktif ve pasif yetenek sınıfları
+│   │           ├── Loot/       # Yer eşyaları, sandıklar, envanter yönetimi
+│   │           ├── Zone/       # AURA güvenli alan çember kontrolörü
+│   │           └── UI/         # Reaktif, Event-Driven HUD ve menü denetleyicileri
+│   ├── Packages/               # Unity paket tanımları (manifest.json)
+│   └── ProjectSettings/        # Proje, girdi, fizik ve kalite ayarları
+├── Docs/                       # Detaylı mimari ve tasarım dokümantasyonları
+│   ├── README_LOST ISLAND.md   # Kapsamlı Oyun Tasarımı Dokümanı (GDD)
+│   └── README_DEV_PLAN.md      # Teknik Mimari ve Geliştirme Planı
+├── .gitignore                  # Unity ve IDE için optimize edilmiş kurallar
+└── README.md                   # Ana proje tanıtımı (bu dosya)
 ```
 
 ---
@@ -177,19 +229,25 @@ LOST ISLAND/
 
 - [x] **Aşama 0:** Konsept, oyun tasarım dokümanı (GDD) ve teknik mimarinin netleştirilmesi.
 - [x] **Aşama 1:** Unity 6 + URP proje altyapısının kurulması ve Git repository konfigürasyonu.
-- [ ] **Aşama 2 (Core Prototype):** 
-  - İzometrik kamera kontrolörü ve karakter hareketi (WASD + Mouse Aim).
-  - Temel silah mekaniği (Ateş etme, şarjör doldurma, mermi izleri).
-  - Basit zemin ganimeti (yerden silah/mühimmat alma).
-- [ ] **Aşama 3 (Networking):**
+- [ ] **Aşama 2 (Core Event & Architecture Foundation):**
+  - EventBus ve ScriptableObject GameEvent altyapısının inşası.
+  - Temel ObjectPool sisteminin entegre edilmesi.
+  - İzometrik kamera kontrolörü ve yeni Input System tabanlı karakter hareketi.
+- [ ] **Aşama 3 (Combat & Decoupled Gameplay):**
+  - Event-driven can, zırh ve hasar sistemi (`OnDamageTaken`, `OnHealthChanged`, `OnDeath`).
+  - Silah sistemi: ateşleme mantığı, object pooling ile mermi/kovan yönetimi, hitscan doğrulama.
+  - Reaktif HUD: Sıfır polling ile çalışan dinamik sağlık, mühimmat ve yetenek göstergeleri.
+- [ ] **Aşama 4 (Networking & Dedicated Server):**
   - Mirror + KCP entegrasyonu.
-  - Dedicated server üzerinde hareket senkronizasyonu ve sunucu taraflı hasar kontrolü.
-- [ ] **Aşama 4 (Battle Royale Sistemleri):**
-  - AURA daralan alan mekaniği (Zone).
-  - Sandık açma, envanter yönetimi ve can/zırh sistemleri.
-- [ ] **Aşama 5 (Operatör Yetenekleri & Görselleştirme):**
-  - İZ, KİLİT, AKS ve EKO yetenek prototipleri.
-  - Stylized 3D çevre modellemeleri ve AURA-01 haritasının blockout'u.
+  - Sunucu otoriteli hareket, yetenek ve hasar doğrulama.
+  - Network olayları üzerinden istemci-sunucu event köprüsü.
+- [ ] **Aşama 5 (Battle Royale Sistemleri & Yetenekler):**
+  - AURA daralan alan mekaniği (Zone eventleri: `OnZonePhaseChanged`, `OnZoneShrinkStarted`).
+  - Sandık açma, yer ganimeti ve envanter yönetimi.
+  - İZ, KİLİT, AKS ve EKO operatör yetenekleri ve görselleştirme.
+- [ ] **Aşama 6 (AURA-01 Haritası & İçerik Üretimi):**
+  - Haritanın blockout'u ve çevre etkileşimleri.
+  - Stylized 3D modeller, materyaller, ses ve parçacık efektleri.
 
 ---
 
