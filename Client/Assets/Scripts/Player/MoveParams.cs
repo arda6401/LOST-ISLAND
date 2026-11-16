@@ -6,5 +6,6 @@ namespace LostIsland.Player
     public class MoveParams : ScriptableObject
     {
         public float moveSpeed = 5f;
+        public float gravity = -20f;
     }
 }

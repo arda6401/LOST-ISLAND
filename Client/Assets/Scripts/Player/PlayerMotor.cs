@@ -11,7 +11,7 @@ namespace LostIsland.Player
         [SerializeField] private MoveParams moveParams;
 
 
-
+        private float verticalVelocity;
         private CharacterController controller;
         private PlayerInputSender input;
 
@@ -35,10 +35,21 @@ namespace LostIsland.Player
 
         private void FixedUpdate()
         {
+
+            float dt = Time.fixedDeltaTime;
             Vector2 Move = input.ServerMove;
 
 
             Vector3 velocity = new Vector3(Move.x, 0f, Move.y) * moveParams.moveSpeed;
+            if (controller.isGrounded && verticalVelocity < 0f)
+                verticalVelocity = -2f;
+            else
+                verticalVelocity += moveParams.gravity * dt;
+
+
+                
+
+            velocity.y = verticalVelocity;
             controller.Move(velocity * Time.fixedDeltaTime);
         }
     }
