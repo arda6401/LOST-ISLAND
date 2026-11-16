@@ -99,6 +99,15 @@ public class PlayerInputSender : NetworkBehaviour
         ServerLastInputTime = Time.time;
     }
 
+    public Vector2 GetMove(float maxAge)
+    {
+        bool fresh = Time.time - ServerLastInputTime <= maxAge;
+
+
+        return fresh ? ServerMove : Vector2.zero;
+        
+    }
+
 
     #endregion
 

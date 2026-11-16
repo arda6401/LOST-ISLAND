@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0512d2cd36d72754c80101960aee5163, type: 3}
   m_Name: MoveParams_Default
   m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Player.MoveParams
-  moveSpeed: 13.89
+  moveSpeed: 5
+  gravity: -20
