@@ -8,5 +8,7 @@ namespace LostIsland.Player
         public float moveSpeed = 5f;
         public float gravity = -20f;
         public float inputTimeout = 0.25f;
+        public float turnSpeed  = 720f;
+        
     }
 }

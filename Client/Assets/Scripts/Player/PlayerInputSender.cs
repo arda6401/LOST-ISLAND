@@ -3,6 +3,7 @@ using Mirror;
 using LostIsland.Inputs;
 using System;
 using Unity.Mathematics;
+using LostIsland.Core;
 public class PlayerInputSender : NetworkBehaviour
 {
     [SerializeField] private InputReader inputReader;
@@ -25,12 +26,17 @@ public class PlayerInputSender : NetworkBehaviour
     // Client
     private bool IsListening = false;
     private Vector2 lastMoveInput = Vector2.zero;
+    private Vector2 CurrentAimInput = Vector2.zero;
+    private float lastAimAngle;
+
     private float NextSendTime = 0f;
+
 
 
     public override void OnStartLocalPlayer()
     {
         inputReader.MoveChanged += MoveChanged;
+        inputReader.AimChanged += AimChanged;
         inputReader.Enable();
         IsListening = true;
         cam = Camera.main;
@@ -45,7 +51,7 @@ public class PlayerInputSender : NetworkBehaviour
 
         NextSendTime = Time.unscaledTime + 1f / sendrate;
 
-        CmdSetMove(ToWorldMove(lastMoveInput));
+        CmdSetMove(ToWorldMove(lastMoveInput), AimAngleCode.Encode(GetWorldAimAngle()));
     }
 
     public override void OnStopLocalPlayer() => Cleanup();
@@ -54,7 +60,12 @@ public class PlayerInputSender : NetworkBehaviour
 
 
 
-
+    private float GetWorldAimAngle()
+    {
+        if (AimMath.TryGetWorldAngle(CurrentAimInput, cam, out float angle))
+            lastAimAngle = angle;
+        return lastAimAngle;
+    }
 
 
     private Vector2 ToWorldMove(Vector2 screenMove)
@@ -65,18 +76,24 @@ public class PlayerInputSender : NetworkBehaviour
         Vector3 world = yawonly * new Vector3(screenMove.x, 0f, screenMove.y);
 
 
-        return new Vector2(world.x,world.z);
+        return new Vector2(world.x, world.z);
     }
+
 
     private void MoveChanged(Vector2 move)
     {
         lastMoveInput = move;
+    }
+    private void AimChanged(Vector2 aim)
+    {
+        CurrentAimInput = aim;
     }
     private void Cleanup()
     {
         if (!IsListening) return;
 
         inputReader.MoveChanged -= MoveChanged;
+        inputReader.AimChanged -= AimChanged;
         inputReader.Disable();
         IsListening = false;
         lastMoveInput = Vector2.zero;
@@ -91,13 +108,14 @@ public class PlayerInputSender : NetworkBehaviour
     // Server
 
     public Vector2 ServerMove { get; private set; }
+    public float ServerAimAngle { get; private set; }
     public float ServerLastInputTime { get; private set; }
 
 
 
 
     [Command(channel = Channels.Unreliable)]
-    private void CmdSetMove(Vector2 move)
+    private void CmdSetMove(Vector2 move, ushort aimangle)
     {
         if (!float.IsFinite(move.x) || !float.IsFinite(move.y))
         {
@@ -108,7 +126,7 @@ public class PlayerInputSender : NetworkBehaviour
 
 
 
-
+        ServerAimAngle = AimAngleCode.Decode(aimangle);
         ServerMove = move;
         ServerLastInputTime = Time.time;
     }

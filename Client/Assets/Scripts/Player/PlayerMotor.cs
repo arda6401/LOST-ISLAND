@@ -51,6 +51,12 @@ namespace LostIsland.Player
 
             velocity.y = verticalVelocity;
             controller.Move(velocity * Time.fixedDeltaTime);
+
+
+            Quaternion target = Quaternion.Euler(0f,input.ServerAimAngle,0f);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,target,moveParams.turnSpeed * dt);
+                            
         }
     }
 }
