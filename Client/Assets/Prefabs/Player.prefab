@@ -103,7 +103,6 @@ GameObject:
   - component: {fileID: 1843282518888412123}
   - component: {fileID: 5438501609181968298}
   - component: {fileID: 7380131490450849159}
-  - component: {fileID: 4831599208504784193}
   - component: {fileID: 6808319839879039352}
   - component: {fileID: 92874766607400407}
   m_Layer: 0
@@ -204,21 +203,6 @@ CharacterController:
   m_SkinWidth: 0.0001
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4831599208504784193
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3023292276116320426}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c85e95100a2637041983094606fda424, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Camerafollower
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
 --- !u!114 &6808319839879039352
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -265,3 +249,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 576d3c27fc3ed6a4688adda0d0993bff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0

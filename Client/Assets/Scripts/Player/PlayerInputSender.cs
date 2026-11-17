@@ -2,10 +2,12 @@ using UnityEngine;
 using Mirror;
 using LostIsland.Inputs;
 using System;
+using Unity.Mathematics;
 public class PlayerInputSender : NetworkBehaviour
 {
     [SerializeField] private InputReader inputReader;
     [SerializeField] private float sendrate = 20f;
+    private Camera cam;
 
 
 
@@ -31,6 +33,7 @@ public class PlayerInputSender : NetworkBehaviour
         inputReader.MoveChanged += MoveChanged;
         inputReader.Enable();
         IsListening = true;
+        cam = Camera.main;
     }
 
 
@@ -42,7 +45,7 @@ public class PlayerInputSender : NetworkBehaviour
 
         NextSendTime = Time.unscaledTime + 1f / sendrate;
 
-        CmdSetMove(lastMoveInput);
+        CmdSetMove(ToWorldMove(lastMoveInput));
     }
 
     public override void OnStopLocalPlayer() => Cleanup();
@@ -53,6 +56,17 @@ public class PlayerInputSender : NetworkBehaviour
 
 
 
+
+    private Vector2 ToWorldMove(Vector2 screenMove)
+    {
+        if (cam == null) return screenMove;
+
+        Quaternion yawonly = Quaternion.Euler(0f, cam.transform.eulerAngles.y, 0f);
+        Vector3 world = yawonly * new Vector3(screenMove.x, 0f, screenMove.y);
+
+
+        return new Vector2(world.x,world.z);
+    }
 
     private void MoveChanged(Vector2 move)
     {
@@ -105,7 +119,7 @@ public class PlayerInputSender : NetworkBehaviour
 
 
         return fresh ? ServerMove : Vector2.zero;
-        
+
     }
 
 

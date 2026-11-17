@@ -19,7 +19,7 @@
             ],
             "bindings": [
                 {
-                    "name": "2D Vector",
+                    "name": "WASD",
                     "id": "57ff9538-b24b-4911-8ccd-d2fbb94711fb",
                     "path": "2DVector",
                     "interactions": "",
@@ -72,6 +72,17 @@
                     "action": "Move",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "9f23c199-2d80-4e49-9f5d-a24e569a9310",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }
