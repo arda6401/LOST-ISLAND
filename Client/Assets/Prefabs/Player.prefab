@@ -103,6 +103,8 @@ GameObject:
   - component: {fileID: 1843282518888412123}
   - component: {fileID: 5438501609181968298}
   - component: {fileID: 6852809014343423605}
+  - component: {fileID: 1452118945675085666}
+  - component: {fileID: 8522256462768375429}
   - component: {fileID: 7380131490450849159}
   - component: {fileID: 6808319839879039352}
   - component: {fileID: 92874766607400407}
@@ -199,6 +201,45 @@ MonoBehaviour:
   length: 8
   height: 0.1
   line: {fileID: 4107396507223074403}
+--- !u!114 &1452118945675085666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82c15ba9b9d8edc4b9f0ddb1ad6318f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Combat.Health
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  maxHealth: 100
+--- !u!114 &8522256462768375429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f39672a4484c2a4d97d40429a87e5d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Weapons.PlayerWeapon
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  definition: {fileID: 11400000, guid: fd47bf27a7602a744b0e4125a2b3953b, type: 2}
+  inputTimeout: 0.25
+  muzzleHeight: 0.25
+  muzzleOffset: 0.7
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  projectileVisualPrefab: {fileID: 1319889938940896299, guid: 2b568465519f7ad42b7b83525b4a5d5f, type: 3}
 --- !u!143 &7380131490450849159
 CharacterController:
   m_ObjectHideFlags: 0

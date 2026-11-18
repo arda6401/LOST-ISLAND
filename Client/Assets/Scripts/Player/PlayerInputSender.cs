@@ -4,6 +4,7 @@ using LostIsland.Inputs;
 using System;
 using Unity.Mathematics;
 using LostIsland.Core;
+using Telepathy;
 public class PlayerInputSender : NetworkBehaviour
 {
     [SerializeField] private InputReader inputReader;
@@ -50,8 +51,9 @@ public class PlayerInputSender : NetworkBehaviour
         if (Time.unscaledTime < NextSendTime) return;
 
         NextSendTime = Time.unscaledTime + 1f / sendrate;
+        bool isfiring = AimMath.IsAiming(CurrentAimInput);
 
-        CmdSetMove(ToWorldMove(lastMoveInput), AimAngleCode.Encode(GetWorldAimAngle()));
+        CmdSetMove(ToWorldMove(lastMoveInput), AimAngleCode.Encode(GetWorldAimAngle()), isfiring);
     }
 
     public override void OnStopLocalPlayer() => Cleanup();
@@ -110,12 +112,22 @@ public class PlayerInputSender : NetworkBehaviour
     public Vector2 ServerMove { get; private set; }
     public float ServerAimAngle { get; private set; }
     public float ServerLastInputTime { get; private set; }
+    private bool serverFiring;
+
+    public bool GetFiring(float maxAge)
+    {
+        bool fresh = Time.time - ServerLastInputTime <= maxAge;
+
+
+        return fresh && serverFiring;
+
+    }
 
 
 
 
     [Command(channel = Channels.Unreliable)]
-    private void CmdSetMove(Vector2 move, ushort aimangle)
+    private void CmdSetMove(Vector2 move, ushort aimangle, bool isFiring)
     {
         if (!float.IsFinite(move.x) || !float.IsFinite(move.y))
         {
@@ -124,10 +136,12 @@ public class PlayerInputSender : NetworkBehaviour
         }
         if (move.sqrMagnitude > 1f) move.Normalize(); // değer büyükse normalize et
 
-
+        if (isFiring != serverFiring)
+            Debug.Log("[SERVER] firing: " + serverFiring);
 
         ServerAimAngle = AimAngleCode.Decode(aimangle);
         ServerMove = move;
+        serverFiring = isFiring;
         ServerLastInputTime = Time.time;
     }
 

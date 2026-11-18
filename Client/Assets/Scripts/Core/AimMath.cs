@@ -12,7 +12,7 @@ namespace LostIsland.Core
         public static bool TryGetWorldAngle(Vector2 aim, Camera cam, out float angle)
         {
 
-            if (aim.sqrMagnitude < AimDeadzone * AimDeadzone)
+            if (!IsAiming(aim))
             {
                 angle = 0;
                 return false;
@@ -23,6 +23,13 @@ namespace LostIsland.Core
             angle = screenAngle + camYaw;
 
             return true;
+        }
+
+
+        public static bool IsAiming(Vector2 aim)
+        {
+            return aim.sqrMagnitude >= AimDeadzone * AimDeadzone;
+
         }
     }
 }
