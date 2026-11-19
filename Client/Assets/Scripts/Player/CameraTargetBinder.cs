@@ -2,39 +2,42 @@ using LostIsland.Core;
 using Unity.Cinemachine;
 using UnityEngine;
 
-public class CameraTargetBinder : MonoBehaviour
+namespace LostIsland.Player
 {
-
-
-
-    private CinemachineCamera cam;
-
-    void Awake()
+    public class CameraTargetBinder : MonoBehaviour
     {
-        cam = GetComponent<CinemachineCamera>();
 
-        if (cam == null)
-            Debug.LogError("camera is not found!");
+
+
+        private CinemachineCamera cam;
+
+        void Awake()
+        {
+            cam = GetComponent<CinemachineCamera>();
+
+            if (cam == null)
+                Debug.LogError("camera is not found!");
+        }
+        void Start()
+        {
+            LocalPlayerEvents.Spawned += SetTarget;
+            LocalPlayerEvents.Despawned += ClearTarget;
+        }
+
+
+
+        public void SetTarget(Transform player)
+        {
+            cam.Follow = player;
+
+        }
+
+        private void ClearTarget()
+        {
+            cam.Follow = null;
+
+        }
+
+
     }
-    void Start()
-    {
-          LocalPlayerEvents.Spawned += SetTarget;
-          LocalPlayerEvents.Despawned += ClearTarget;
-    }
-
-
-
-    private void SetTarget(Transform player)
-    {
-        cam.Follow = player;
-
-    }
-
-    private void ClearTarget()
-    {
-                cam.Follow = null;
-
-    }
-
-
 }

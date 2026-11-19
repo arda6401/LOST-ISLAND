@@ -1,13 +1,12 @@
 using System;
 using Mirror;
-using NUnit.Framework;
 using UnityEngine;
 
 
 
 namespace LostIsland.Network
 {
-    public class NetworkBootStap : MonoBehaviour
+    public class NetworkBootstrap : MonoBehaviour
     {
         [SerializeField] private int physicsHz = 30;
         [SerializeField] private int serverTargetFrameRate = 60;

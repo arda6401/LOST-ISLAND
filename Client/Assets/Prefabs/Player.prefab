@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4633652444722192156}
   - component: {fileID: 2490798798563287447}
+  - component: {fileID: 9124263479678874940}
   - component: {fileID: 1843282518888412123}
   - component: {fileID: 5438501609181968298}
   - component: {fileID: 6852809014343423605}
@@ -151,6 +152,21 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &9124263479678874940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 843e823c548a840469863417ae64c602, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Player.PlayerEntity
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!114 &1843282518888412123
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -178,7 +194,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 563266f8907ec37418d43d1a6e3836ca, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerInputSender
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Player.PlayerInputSender
   syncDirection: 0
   syncMode: 0
   syncInterval: 0

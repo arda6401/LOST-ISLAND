@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LostIsland.Combat;
 using LostIsland.Core;
+using LostIsland.Player;
 using Mirror;
 using Unity.Mathematics;
 using UnityEngine;

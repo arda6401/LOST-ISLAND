@@ -22,6 +22,7 @@
 10. [Proje Klasör ve Assembly (asmdef) Yapısı](#10-proje-klasör-ve-assembly-asmdef-yapısı)
 11. [Geliştirme Yol Haritası (Milestones)](#11-geliştirme-yol-haritası-milestones)
 12. [İlk Prototipin Kapsamı & Kabul Kriterleri](#12-ilk-prototipin-kapsamı--kabul-kriterleri)
+13. [Backend ve Çoklu Game Server Taslağı](#13-backend-ve-çoklu-game-server-taslağı)
 
 ---
 
@@ -309,3 +310,44 @@ LOST ISLAND/
 2. **Sıfır Polling:** HUD veya herhangi bir arayüz elemanının `Update()` döngüsünde veri sorgulamaması.
 3. **Performans:** Çatışma anında hiçbir mermi veya parçacık efekti için `Instantiate/Destroy` çağrılmaması (Object Pooling zorunlu).
 4. **Oynanış:** İki istemcinin dedicated server'a bağlanarak izometrik açıda hareket edebilmesi, silah toplayıp birbirine ateş edebilmesi, hasarın ve eleme durumunun reaktif HUD'a kusursuz yansıması.
+
+---
+
+## 13. Backend ve Çoklu Game Server Taslağı
+
+**Durum:** Ön tasarım; bulut sağlayıcısı ve backend teknolojisi henüz seçilmedi.
+
+### Sorumluluk sınırı
+
+- **Backend kontrol düzlemi:** Kimlik/oturum, maç kuyruğu, maç kaydı, sunucu tahsisi, kısa ömürlü katılım bileti ve maç sonucu kaydı.
+- **Dedicated game server:** Maçın otoriter simülasyonu; hareket, çatışma, hasar, loot ve maç kuralları.
+- Oyuncu, maç bulma ve bağlantı bilgisi için backend'e HTTPS isteği yapar. Oyun başladıktan sonra gerçek zamanlı trafik doğrudan Mirror + KCP üzerinden ilgili game server'a gider.
+- Game server, hazır olma ve maç sonucu gibi seyrek yaşam döngüsü bildirimlerini backend'e HTTPS ile yollar. Backend oyun içi her hareketi aktarmaz.
+
+### Bir maçın tahsis ve bağlantı akışı
+
+1. İstemci backend'den maç kuyruğuna katılmayı ister.
+2. Matchmaker uygun oyuncuları gruplar ve bir maç kaydı açar.
+3. Sunucu tahsis katmanı bu maç için bir dedicated server süreci başlatır veya hazır havuzdan ayırır.
+4. Sürece maç kimliği, port ve gerekli maç ayarları verilir. Sunucu açılıp bağlantı kabul etmeye hazır olduğunda backend'e kaydolur.
+5. Backend oyunculara sunucu adresini ve kısa ömürlü, o maça özel katılım biletini döner.
+6. İstemci Mirror bağlantısını kurar; game server bileti doğrulayıp oyuncuyu kabul eder.
+7. Maç sonunda game server sonucu backend'e gönderir. Sonuç kaydı yinelenen gönderimlere dayanıklı olmalıdır.
+
+### Ölçekleme varsayımı
+
+- İlk dağıtım hedefi **maç başına bir game server süreci** ve aynı anda birden fazla maç için birden fazla süreçtir. Örneğin üç maç, üç süreç gerektirir.
+- Birden fazla süreç aynı fiziksel makinede çalıştırılabilir; her süreç ayrı oyun oturumu ve ağ portu kullanır. Makine başına güvenli maç sayısı profil/test sonuçlarıyla belirlenir.
+- İlk sürümde her maçı ayrı makineye koymak zorunlu değildir. Kapasite, izolasyon ve maliyet ölçümleri bu kararı yönlendirir.
+- Sunucu tahsisi sağlayıcıdan bağımsız bir arayüz arkasında tutulur; bulut/hosting sağlayıcısı henüz kararlaştırılmamıştır.
+
+### Güvenlik ve yaşam döngüsü
+
+- Katılım biletleri kısa ömürlü olmalı, maç ve oyuncu kimliğine bağlanmalı; istemcinin gönderdiği maç/oyuncu bilgileri tek başına yetki sayılmamalıdır.
+- Game server backend'e kendi sunucu kimliğiyle doğrulanmalıdır.
+- Sunucu durumları en azından `Starting`, `Ready`, `InMatch`, `Stopping` ve `Failed` olarak izlenmeli; backend hazır olmayan sunucuya oyuncu yönlendirmemelidir.
+- Maç sonucu maç kimliğiyle tekilleştirilmeli; yeniden deneme aynı sonucu ikinci kez uygulamamalıdır.
+
+### Uygulama sırası
+
+Önce tek bir dedicated server sürecinin komut satırından maç kimliği/port alması ve hazır durumunu bildirmesi sağlanır. Ardından istemciye biletli bağlantı bilgisi veren basit maç servisi eklenir. Çoklu süreç tahsisi ve sağlayıcı entegrasyonu, tek maç uçtan uca akışı doğrulandıktan sonra yapılır. İlk çok oyunculu prototip hedefi olan 20 oyuncu, sunucu kapasitesi ölçümü için başlangıç noktasıdır; nihai oyuncu ve maç başına sunucu sayısı profil sonuçlarına bağlıdır.

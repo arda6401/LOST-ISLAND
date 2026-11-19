@@ -10,9 +10,9 @@ namespace LostIsland.Core
         private const float Step = 360 / 65536f;
 
 
-        public static ushort Encode(float degress)
+        public static ushort Encode(float degrees)
         {
-            float wrapped = Mathf.Repeat(degress, 360f);
+            float wrapped = Mathf.Repeat(degrees, 360f);
             return (ushort)(Mathf.RoundToInt(wrapped / Step) & 0xFFFF);
 
         }

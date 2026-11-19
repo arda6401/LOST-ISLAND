@@ -1,10 +1,12 @@
 using LostIsland.Core;
 using Mirror;
-using UnityEngine;
 
-public class LocalPlayerNotifier : NetworkBehaviour
+
+namespace LostIsland.Player
 {
-    public override void OnStartLocalPlayer()=> LocalPlayerEvents.RaiseSpawned(transform);
-    public override void OnStopLocalPlayer() => LocalPlayerEvents.RaiseDespawned();
-
+    public class LocalPlayerNotifier : NetworkBehaviour
+    {
+        public override void OnStartLocalPlayer() => LocalPlayerEvents.RaiseSpawned(transform);
+        public override void OnStopLocalPlayer() => LocalPlayerEvents.RaiseDespawned();
+    }
 }
