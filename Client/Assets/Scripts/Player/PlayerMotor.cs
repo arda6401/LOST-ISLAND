@@ -1,11 +1,12 @@
 using Mirror;
 using UnityEngine;
+using LostIsland.Combat;
 
 
 namespace LostIsland.Player
 {
 
-    [RequireComponent(typeof(PlayerInputSender), typeof(CharacterController))]
+    [RequireComponent(typeof(PlayerInputSender), typeof(CharacterController), typeof(Health))]
     public class PlayerMotor : NetworkBehaviour
     {
         [SerializeField] private MoveParams moveParams;
@@ -14,6 +15,7 @@ namespace LostIsland.Player
         private float verticalVelocity;
         private CharacterController controller;
         private PlayerInputSender input;
+        private Health health;
 
 
 
@@ -21,20 +23,35 @@ namespace LostIsland.Player
         {
             controller = GetComponent<CharacterController>();
             input = GetComponent<PlayerInputSender>();
+            health = GetComponent<Health>();
         }
 
 
         public override void OnStartClient()
         {
             if (!isServer) controller.enabled = false; //  sunucu değilse kapat 
+
+
         }
 
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            health.ServerDied += OnDied; 
+        }
+        public override void OnStopServer()
+        {
+            base.OnStopServer();
+            health.ServerDied -= OnDied;
+        }
 
         [ServerCallback]
 
 
         private void FixedUpdate()
         {
+
+            if(health.IsDead) return;
 
             float dt = Time.fixedDeltaTime;
             Vector2 Move = input.GetMove(moveParams.inputTimeout);
@@ -57,6 +74,12 @@ namespace LostIsland.Player
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,target,moveParams.turnSpeed * dt);
                             
+        }
+
+        private void OnDied()
+        {
+             controller.enabled = false;
+             Debug.Log($"[Server] {name} died");
         }
     }
 }

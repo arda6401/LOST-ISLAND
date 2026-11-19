@@ -103,7 +103,9 @@ GameObject:
   - component: {fileID: 1843282518888412123}
   - component: {fileID: 5438501609181968298}
   - component: {fileID: 6852809014343423605}
+  - component: {fileID: 1344973652117635228}
   - component: {fileID: 1452118945675085666}
+  - component: {fileID: 1865408350978429552}
   - component: {fileID: 8522256462768375429}
   - component: {fileID: 7380131490450849159}
   - component: {fileID: 6808319839879039352}
@@ -201,6 +203,24 @@ MonoBehaviour:
   length: 8
   height: 0.1
   line: {fileID: 4107396507223074403}
+--- !u!114 &1344973652117635228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f5679aab2534a34d84342dc79303edd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Combat.DeadVisual
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  visual: {fileID: 5882441400618815472}
+  deadLocalPosition: {x: 0, y: 0.5, z: 0}
+  deadLocalEuler: {x: 90, y: 0, z: 0}
 --- !u!114 &1452118945675085666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -217,6 +237,24 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   maxHealth: 100
+--- !u!114 &1865408350978429552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d14412832b4e0dd41814473e03c455c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Combat.HitFlash
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  targetRenderer: {fileID: 7431978978040099482}
+  flashColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+  duration: 0.12
 --- !u!114 &8522256462768375429
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -240,6 +278,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   projectileVisualPrefab: {fileID: 1319889938940896299, guid: 2b568465519f7ad42b7b83525b4a5d5f, type: 3}
+  impactEffectPrefab: {fileID: 1349301569983609118, guid: 56d01029046a8c04e9ec28491f0e25db, type: 3}
 --- !u!143 &7380131490450849159
 CharacterController:
   m_ObjectHideFlags: 0

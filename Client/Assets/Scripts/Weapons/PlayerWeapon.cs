@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using LostIsland.Combat;
 using LostIsland.Core;
 using Mirror;
+using Unity.Mathematics;
 using UnityEngine;
 
 
@@ -25,6 +26,7 @@ namespace LostIsland.Weapons
 
         [Header("Virtual (client)")]
         [SerializeField] private GameObject projectileVisualPrefab;
+        [SerializeField] private GameObject impactEffectPrefab;
 
         private PlayerInputSender input;
         private Health ownHealth;
@@ -61,7 +63,7 @@ namespace LostIsland.Weapons
 
         private readonly List<Projectile> projectiles = new List<Projectile>();
         private float nextFireTime;
-        private ushort NextProjectileId=1;
+        private ushort NextProjectileId = 1;
 
 
         [ServerCallback]
@@ -86,16 +88,19 @@ namespace LostIsland.Weapons
 
             Debug.Log("[Server] Fire!");
 
+
+            ushort id = NextProjectileId++;
+
             projectiles.Add(new Projectile
             {
-                Id = NextProjectileId++,
+                Id = id,
                 Direction = dir,
                 position = origin,
                 Remaining = stats.Range
             });
 
 
-              RpcFired(origin, AimAngleCode.Encode(input.ServerAimAngle));
+            RpcFired(id, origin, AimAngleCode.Encode(input.ServerAimAngle));
 
         }
 
@@ -112,7 +117,9 @@ namespace LostIsland.Weapons
                 out RaycastHit hit, distance, hitMask, QueryTriggerInteraction.Ignore))
                 {
                     Debug.DrawLine(p.position, hit.point, Color.red, 0.5f);
-                      OnProjectileHit(hit);
+                    OnProjectileHit(hit);
+                    Vector3 hitCenter = p.position + p.Direction * hit.distance;
+                    RpcProjectileHit(p.Id, hitCenter);
                     projectiles.RemoveAt(i);
                     continue;
                 }
@@ -152,6 +159,7 @@ namespace LostIsland.Weapons
 
         private struct VisualProjectile
         {
+            public ushort Id;
             public Transform Transform;
             public Vector3 Direction;
             public float Remaining;
@@ -162,7 +170,7 @@ namespace LostIsland.Weapons
 
 
         [ClientRpc(channel = Channels.Unreliable)]
-        private void RpcFired(Vector3 origin, ushort aimAngle)
+        private void RpcFired(ushort id, Vector3 origin, ushort aimAngle)
         {
             if (projectileVisualPrefab == null) return;
 
@@ -172,10 +180,32 @@ namespace LostIsland.Weapons
 
             visuals.Add(new VisualProjectile
             {
+                Id = id,
                 Transform = go.transform,
                 Direction = dir,
                 Remaining = stats.Range
             });
+        }
+
+
+        [ClientRpc]
+        private void RpcProjectileHit(ushort id, Vector3 position)
+        {
+            for (int i = 0; i < visuals.Count; i++)
+            {
+                if (visuals[i].Id != id) continue;
+
+
+                Destroy(visuals[i].Transform.gameObject);
+                visuals.RemoveAt(i);
+                break;
+
+            }
+
+            if(impactEffectPrefab == null) return;
+
+            GameObject fx = Instantiate(impactEffectPrefab,position, quaternion.identity);
+            Destroy(fx,2f);
         }
 
 
