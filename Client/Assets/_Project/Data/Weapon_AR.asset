@@ -10,9 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 015dfd2330147174d8c86bfc7195da13, type: 3}
-  m_Name: Weapon_
+  m_Name: Weapon_AR
   m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Weapons.WeaponDefinition
   displayName: "Sald\u0131r\u0131 T\xFCfe\u011Fi"
+  Icon: {fileID: 0}
+  maxStack: 1
+  pickupTime: 9.47
+  worldColor: {r: 0, g: 0, b: 1, a: 1}
   fireInterval: 0.15
   projectileSpeed: 18.36
   projectileRadius: 0.25

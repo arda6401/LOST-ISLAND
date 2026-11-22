@@ -41,6 +41,20 @@
 
 ---
 
+## 🧪 Prototipte Şu An Neler Var?
+
+Proje şu anda temel çok oyunculu çatışma prototipi aşamasında. Aşağıdakiler kod ve sahnede mevcut; uçtan uca test edilmiş veya tamamlanmış oyun özellikleri olarak değerlendirilmemelidir:
+
+- Mirror tabanlı oyuncu bağlantısı ve komut satırı argümanıyla dedicated server başlatma iskeleti.
+- Sunucuya gönderilen hareket ve nişan girdileri; sunucuda karakter hareketi ve mermi çarpışma/hasar hesabı.
+- Senkronize can ve ölüm durumu, hasar alınca görsel tepki ve ölüm görseli.
+- Yerel oyuncu yaşam döngüsü, ölümden sonra yaşayan oyuncuları izleme ve mobil kontrolleri gizleme.
+- Test sahnesinde mobil hareket/nişan kontrolleri.
+
+Henüz uygulanmış maç eşleştirme/backend servisi, çoklu maç sunucu tahsisi, loot/envanter, daralan güvenli alan, operatör yetenekleri veya tamamlanmış maç döngüsü yok. Backend ve çoklu game server taslağı için [teknik plana](Docs/README_DEV_PLAN.md#13-backend-ve-çoklu-game-server-taslağı) bakın.
+
+---
+
 ## 🎯 Temel Tasarım İlkeleri
 
 1. **Karakter Kimliği:** Her operatörün aktif ve pasif yetenekleri farklı bir oyun tarzı sunar. Ancak operatörler belirli bir silah sınıfına kilitlenmez; haritada bulunan tüm silahları serbestçe kullanabilirler.
@@ -229,25 +243,12 @@ LOST ISLAND/
 
 - [x] **Aşama 0:** Konsept, oyun tasarım dokümanı (GDD) ve teknik mimarinin netleştirilmesi.
 - [x] **Aşama 1:** Unity 6 + URP proje altyapısının kurulması ve Git repository konfigürasyonu.
-- [ ] **Aşama 2 (Core Event & Architecture Foundation):**
-  - EventBus ve ScriptableObject GameEvent altyapısının inşası.
-  - Temel ObjectPool sisteminin entegre edilmesi.
-  - İzometrik kamera kontrolörü ve yeni Input System tabanlı karakter hareketi.
-- [ ] **Aşama 3 (Combat & Decoupled Gameplay):**
-  - Event-driven can, zırh ve hasar sistemi (`OnDamageTaken`, `OnHealthChanged`, `OnDeath`).
-  - Silah sistemi: ateşleme mantığı, object pooling ile mermi/kovan yönetimi, hitscan doğrulama.
-  - Reaktif HUD: Sıfır polling ile çalışan dinamik sağlık, mühimmat ve yetenek göstergeleri.
-- [ ] **Aşama 4 (Networking & Dedicated Server):**
-  - Mirror + KCP entegrasyonu.
-  - Sunucu otoriteli hareket, yetenek ve hasar doğrulama.
-  - Network olayları üzerinden istemci-sunucu event köprüsü.
-- [ ] **Aşama 5 (Battle Royale Sistemleri & Yetenekler):**
-  - AURA daralan alan mekaniği (Zone eventleri: `OnZonePhaseChanged`, `OnZoneShrinkStarted`).
-  - Sandık açma, yer ganimeti ve envanter yönetimi.
-  - İZ, KİLİT, AKS ve EKO operatör yetenekleri ve görselleştirme.
-- [ ] **Aşama 6 (AURA-01 Haritası & İçerik Üretimi):**
-  - Haritanın blockout'u ve çevre etkileşimleri.
-  - Stylized 3D modeller, materyaller, ses ve parçacık efektleri.
+- [x] **Aşama 2 (Temel Oyuncu Prototipi):** İzometrik kamera takibi, New Input System girdisi, sunucu otoriteli temel hareket ve nişan.
+- [x] **Aşama 3 (İlk Çatışma Prototipi):** Sunucu tarafı mermi çarpışması/hasar, senkronize can ve ölüm, temel vuruş/ölüm görselleri.
+- [~] **Aşama 4 (Çok Oyunculu Prototip):** Mirror bağlantısı ve dedicated server başlangıç iskeleti mevcut; maç yaşam döngüsü, hata dayanıklılığı ve hedef oyuncu sayısı doğrulanmayı bekliyor.
+- [ ] **Aşama 5 (Tam Maç Döngüsü):** Lobi/maç durumları, loot ve envanter, AURA güvenli alanı, sonuç akışı.
+- [ ] **Aşama 6 (Backend ve Çoklu Game Server):** Eşleştirme, sunucu tahsisi, bağlantı bileti ve maç sonucu kaydı. Tasarım taslağı teknik planda.
+- [ ] **Aşama 7 (İçerik ve Denge):** AURA-01 haritası, operatör yetenekleri, içerik ve denge çalışması.
 
 ---
 

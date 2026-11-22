@@ -1,3 +1,4 @@
+using LostIsland.Items;
 using UnityEngine;
 
 
@@ -6,10 +7,10 @@ namespace LostIsland.Weapons
 {
 
     [CreateAssetMenu(fileName = "Weapon_", menuName = "LostIsland/Weapon Definition")]
-    public class WeaponDefinition : ScriptableObject
+    public class WeaponDefinition : ItemDefinition
     {
-        [Header("Kimlik")]
-        public string displayName = "Saldırı Tüfeği";
+      
+        
 
         [Header("Atış")]
         [Tooltip("İki atış arası süre (sn). 0.15 = saniyede ~6,7 atış")]

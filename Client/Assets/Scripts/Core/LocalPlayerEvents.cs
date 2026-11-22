@@ -8,8 +8,19 @@ namespace LostIsland.Core
         public static event Action Despawned;
 
 
-        public static void RaiseSpawned(Transform player) => Spawned?.Invoke(player);
-        public static void RaiseDespawned() => Despawned?.Invoke();
+        public static Transform Current { get; private set; }
+
+        public static void RaiseSpawned(Transform player)
+        {
+            Current = player;
+            Spawned?.Invoke(player);
+        }
+
+        public static void RaiseDespawned()
+        {
+            Current = null;
+            Despawned?.Invoke();
+        }
 
     }
 }
