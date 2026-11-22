@@ -4,6 +4,7 @@ using LostIsland.Combat;
 using LostIsland.Player;
 using Mirror;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 namespace LostIsland.Items
@@ -201,92 +202,42 @@ namespace LostIsland.Items
 
         [Header("Bekleme halkası")]
 
-        [SerializeField] private LineRenderer ring;
-        [SerializeField] private float ringRadius = 0.6f;
-        [SerializeField] private float ringHeight = 0.5f;
 
-        [SerializeField] private Color ownColor = Color.white;
-        [SerializeField] private Color otherColor = new Color(1f, 0.3f, 0.3f);
+        [SerializeField] private Image ProgressBar;
+        private float targetProgress;
+        private float displayedProgress;
+        [SerializeField] private Color ownColor = Color.green;
+        [SerializeField] private Color otherColor = Color.gray;
         private const int ringSegments = 48;
 
         private void Awake()
         {
-            if(ring == null)
+            if (ProgressBar == null)
                 return;
 
-            ring.useWorldSpace = false;
-            ring.loop = false;
-            ring.enabled = false;
-            ring.positionCount = 0;
+            ProgressBar.fillAmount = 0;
         }
 
         private void OnProgressChanged(float oldvalue, float newvalue)
         {
-            UpdateProgressRing(newvalue);
+            Debug.Log($"[Ring] {Time.time:F2} -> {newvalue:F2}");
+            targetProgress = newvalue;
+            if (newvalue <= 0) displayedProgress = 0;
         }
 
-        private void UpdateProgressRing(float elapsedSecond)
+        [ClientCallback]
+
+        private void Update()
         {
-            if (ring == null) return;
+            if (ProgressBar == null || !ProgressBar.IsActive()) return;
 
-
-            ItemDefinition item = Definition;
-            if (item == null || item.pickupTime <= 0 || elapsedSecond <= 0)
-            {
-                ring.enabled = false;
-                return;
-            }
-
-           
-            DrawProgressFill(elapsedSecond);
-
-
+            float t = 1f - Mathf.Exp(-15 * Time.deltaTime);
+            displayedProgress = Mathf.Lerp(displayedProgress, targetProgress, t);
+            ProgressBar.fillAmount = displayedProgress;
         }
 
-        private void DrawProgressFill(float fill)
-        {
-            if (ring == null) return;
-
-            fill = Mathf.Clamp01(fill);
-
-            if (fill <= 0)
-            {
-                ring.enabled = false;
-                return;
-            }
-
-            int segments = Mathf.Clamp(ringSegments, 3, 256);
-            int visiblesegment = Mathf.Clamp(Mathf.CeilToInt(segments * fill), 1, segments);
-
-            ring.enabled = true;
-            ring.positionCount = visiblesegment + 1;
-            for (int i = 0; i <= visiblesegment; i++)
-            {
-                float angle = (float)i / segments * Mathf.PI * 2f;
-
-                Vector3 point = new Vector3(
-                    Mathf.Cos(angle) * ringRadius,
-                    ringHeight,
-                    Mathf.Sin(angle) * ringRadius
-                );
 
 
-                ring.SetPosition(i, point);
-
-            }
-        }
-
-        private void UpdateItemVisual()
-        {
-            ItemDefinition item = Definition;
-            if (item == null || visual == null)
-                return;
-
-            MaterialPropertyBlock block = new MaterialPropertyBlock();
-            visual.GetPropertyBlock(block);
-            block.SetColor(BaseColorId, item.worldColor);
-            visual.SetPropertyBlock(block);
-        }
 
 
 
