@@ -20,8 +20,7 @@ namespace LostIsland.Items
 
 
 
-        [Header("virtual")]
-        [SerializeField] private Renderer visual;
+
 
 
 
@@ -159,18 +158,24 @@ namespace LostIsland.Items
 
 
             if (leader.Elapsed >= item.pickupTime)
-                Pickup(leader.player, item);
+                if (!Pickup(leader.player))
+                    leader.Elapsed = 0;
         }
 
 
 
         [Server]
-        private void Pickup(PlayerEntity player, ItemDefinition def)
+        private bool Pickup(PlayerEntity player)
         {
+
+            if (player.Inventory == null) return false;
+            if (!player.Inventory.TryPickup(itemId)) return false;
+
             taken = true;
             claims.Clear();
-            Debug.Log($"[Server] {player.name} picked up {def.displayName} x{quantity}");
+            Debug.Log($"[Server] {player.name} picked up {Definition.displayName} x{quantity}");
             NetworkServer.Destroy(gameObject);
+            return true;
         }
 
 
@@ -183,24 +188,16 @@ namespace LostIsland.Items
 
 
         #region Client
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
-        public override void OnStartClient()
-        {
-            ItemDefinition def = Definition;
-            if (def == null || visual == null) return;
-
-            MaterialPropertyBlock block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, def.worldColor);
-            visual.SetPropertyBlock(block);
-        }
 
 
 
 
 
 
-        [Header("Bekleme halkası")]
+
+
+
+
 
 
         [SerializeField] private Image ProgressBar;
@@ -216,6 +213,13 @@ namespace LostIsland.Items
                 return;
 
             ProgressBar.fillAmount = 0;
+        }
+        public override void OnStartClient()
+        {
+            ItemDefinition def = Definition;
+            if (def == null) return;
+
+
         }
 
         private void OnProgressChanged(float oldvalue, float newvalue)

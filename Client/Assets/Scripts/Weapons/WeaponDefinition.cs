@@ -16,6 +16,9 @@ namespace LostIsland.Weapons
         [Tooltip("İki atış arası süre (sn). 0.15 = saniyede ~6,7 atış")]
         public float fireInterval = 0.15f;
 
+        [Header("Silahın mermi sayısı")]
+        public int magazineSize = 50; 
+
         [Header("Mermi")]
         [Tooltip("Mermi hızı (m/sn)")]
         public float projectileSpeed = 40f;
@@ -28,5 +31,6 @@ namespace LostIsland.Weapons
 
         [Tooltip("Tek mermi hasarı")]
         public int damage = 10;
+
     }
 }

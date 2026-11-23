@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LostIsland.Weapons;
 using UnityEngine;
 
 namespace LostIsland.Items
@@ -17,7 +18,12 @@ namespace LostIsland.Items
             if (id == None || id > items.Count) return null;
             return items[id - 1];
         }
+        public bool TryGetWeapon(ushort id, out WeaponDefinition weapon)
+        {
+            weapon = Get(id) as WeaponDefinition;
 
+            return weapon != null;
+        }
         public ushort GetId(ItemDefinition item)
         {
             int index = items.IndexOf(item);
@@ -33,7 +39,7 @@ namespace LostIsland.Items
                     Debug.LogWarning($"[ItemDatabase] Tekrarlanan eşya: {items[i].name}", this);
 
 
-                    
+
         }
     }
 }

@@ -8,6 +8,7 @@ namespace LostIsland.Player
     public class PlayerEntity : NetworkBehaviour
     {
         public Health health { get; private set; }
+        public PlayerInventory Inventory { get; private set; }
 
         public bool IsDead => health.IsDead;
 
@@ -16,10 +17,16 @@ namespace LostIsland.Player
         private void Awake()
         {
             health = GetComponent<Health>();
+            Inventory = GetComponent<PlayerInventory>();
             if (health == null)
             {
                 Debug.LogError("[PLAYER ENTİTY] health is not added");
-                return;
+               
+            }
+            if (Inventory == null)
+            {
+                Debug.LogError("[PLAYER ENTİTY] Inventory is not added");
+                
             }
 
 

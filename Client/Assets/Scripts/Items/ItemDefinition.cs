@@ -16,6 +16,6 @@ namespace LostIsland.Items
         public float pickupTime = 0.5f;
 
         [Header("Geçici görsel")]
-        public Color worldColor = Color.white;
+        public GameObject ItemPrefab;
     }
 }

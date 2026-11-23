@@ -111,6 +111,7 @@ GameObject:
   - component: {fileID: 7380131490450849159}
   - component: {fileID: 6808319839879039352}
   - component: {fileID: 92874766607400407}
+  - component: {fileID: 3628763290777747282}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -369,6 +370,23 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+--- !u!114 &3628763290777747282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3023292276116320426}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dde8fe6c7e616cc428ec76b2db184791, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Combat.WeaponLoadout
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  database: {fileID: 11400000, guid: e092b3fb120541c49bff02beaf51f2f0, type: 2}
+  testWeapon: {fileID: 11400000, guid: fd47bf27a7602a744b0e4125a2b3953b, type: 2}
 --- !u!1 &3343051968524955432
 GameObject:
   m_ObjectHideFlags: 0
