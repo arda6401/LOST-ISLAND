@@ -14,7 +14,7 @@ namespace LostIsland.Weapons
     public class PlayerWeapon : NetworkBehaviour
     {
         [Header("Data")]
-        [SerializeField] private WeaponDefinition definition;
+
         [SerializeField] private float inputTimeout = 0.25f;
 
 
@@ -30,24 +30,15 @@ namespace LostIsland.Weapons
         [SerializeField] private GameObject impactEffectPrefab;
 
         private PlayerInputSender input;
-        private Health ownHealth;
-        private WeaponStats stats;
+        private PlayerEntity player;
+
 
 
         private void Awake()
         {
             input = GetComponent<PlayerInputSender>();
-            ownHealth = GetComponent<Health>();
+            player = GetComponent<PlayerEntity>();
 
-
-            if (definition == null)
-            {
-                Debug.LogError("[PlayerWeapon] Definition not added.", this);
-                enabled = false;
-                return;
-            }
-
-            stats = WeaponStats.From(definition);
 
         }
 
@@ -59,6 +50,9 @@ namespace LostIsland.Weapons
             public Vector3 position;
             public Vector3 Direction;
             public float Remaining;
+            public float Speed;     // yeni
+            public float Radius;    // yeni
+            public int Damage;    // yeni
         }
 
 
@@ -78,10 +72,14 @@ namespace LostIsland.Weapons
         [Server]
         private void TryFire()
         {
-            if (ownHealth.IsDead) return;
+            if (player.health.IsDead) return;
             if (!input.GetFiring(inputTimeout)) return;
             if (Time.time < nextFireTime) return;
 
+            if (!player.Inventory.TryGetActiveSlotWeapon(out WeaponDefinition weapon)) return;
+            if (!player.Inventory.TryConsumeAmmo()) return;
+
+            WeaponStats stats = WeaponStats.From(weapon);
             nextFireTime = Time.time + stats.FireInterval;
 
             Vector3 dir = Quaternion.Euler(0f, input.ServerAimAngle, 0f) * Vector3.forward;
@@ -97,11 +95,14 @@ namespace LostIsland.Weapons
                 Id = id,
                 Direction = dir,
                 position = origin,
-                Remaining = stats.Range
+                Remaining = stats.Range,
+                Speed = stats.ProjectileSpeed,
+                Radius = stats.ProjectileRadius,
+                Damage = stats.Damage
             });
 
 
-            RpcFired(id, origin, AimAngleCode.Encode(input.ServerAimAngle));
+            RpcFired(id, origin, AimAngleCode.Encode(input.ServerAimAngle), weapon.Id);
 
         }
 
@@ -111,14 +112,14 @@ namespace LostIsland.Weapons
             for (int i = projectiles.Count - 1; i >= 0; i--)
             {
                 Projectile p = projectiles[i];
-                float distance = Mathf.Min(stats.ProjectileSpeed * dt, p.Remaining);
+                float distance = Mathf.Min(p.Speed * dt, p.Remaining);
 
 
-                if (Physics.SphereCast(p.position, stats.ProjectileRadius, p.Direction,
+                if (Physics.SphereCast(p.position, p.Radius, p.Direction,
                 out RaycastHit hit, distance, hitMask, QueryTriggerInteraction.Ignore))
                 {
                     Debug.DrawLine(p.position, hit.point, Color.red, 0.5f);
-                    OnProjectileHit(hit);
+                    OnProjectileHit(hit, p.Damage);
                     Vector3 hitCenter = p.position + p.Direction * hit.distance;
                     RpcProjectileHit(p.Id, hitCenter);
                     projectiles.RemoveAt(i);
@@ -141,12 +142,12 @@ namespace LostIsland.Weapons
 
 
         [Server]
-        private void OnProjectileHit(RaycastHit hit)
+        private void OnProjectileHit(RaycastHit hit, int Damage)
         {
             IDamageable target = hit.collider.GetComponentInParent<IDamageable>();
-            if (target == null || ReferenceEquals(target, ownHealth)) return;
+            if (target == null || ReferenceEquals(target, player.health)) return;
 
-            target.TakeDamage(stats.Damage);
+            target.TakeDamage(Damage);
             Debug.Log($"[Server] Hit {target} ");
 
         }
@@ -164,6 +165,9 @@ namespace LostIsland.Weapons
             public Transform Transform;
             public Vector3 Direction;
             public float Remaining;
+            public float Speed;     // yeni
+          //  public float Radius;    // yeni
+           // public float Damage;    // yeni
 
         }
 
@@ -171,9 +175,10 @@ namespace LostIsland.Weapons
 
 
         [ClientRpc(channel = Channels.Unreliable)]
-        private void RpcFired(ushort id, Vector3 origin, ushort aimAngle)
+        private void RpcFired(ushort id, Vector3 origin, ushort aimAngle, ushort weaponid)
         {
             if (projectileVisualPrefab == null) return;
+            if (!player.Inventory.TryGetWeaponById(weaponid, out WeaponDefinition weapon)) return;
 
 
             Vector3 dir = Quaternion.Euler(0f, AimAngleCode.Decode(aimAngle), 0f) * Vector3.forward;
@@ -184,7 +189,8 @@ namespace LostIsland.Weapons
                 Id = id,
                 Transform = go.transform,
                 Direction = dir,
-                Remaining = stats.Range
+                Remaining = weapon.range,
+                Speed = weapon.projectileSpeed
             });
         }
 
@@ -203,10 +209,10 @@ namespace LostIsland.Weapons
 
             }
 
-            if(impactEffectPrefab == null) return;
+            if (impactEffectPrefab == null) return;
 
-            GameObject fx = Instantiate(impactEffectPrefab,position, quaternion.identity);
-            Destroy(fx,2f);
+            GameObject fx = Instantiate(impactEffectPrefab, position, quaternion.identity);
+            Destroy(fx, 2f);
         }
 
 
@@ -217,7 +223,7 @@ namespace LostIsland.Weapons
             for (int i = visuals.Count - 1; i >= 0; i--)
             {
                 VisualProjectile v = visuals[i];
-                float distance = Mathf.Min(stats.ProjectileSpeed * Time.deltaTime, v.Remaining);
+                float distance = Mathf.Min(v.Speed * Time.deltaTime, v.Remaining);
 
                 v.Transform.position += v.Direction * distance;
                 v.Remaining -= distance;

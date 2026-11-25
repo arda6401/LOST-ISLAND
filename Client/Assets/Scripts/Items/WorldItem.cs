@@ -224,7 +224,7 @@ namespace LostIsland.Items
 
         private void OnProgressChanged(float oldvalue, float newvalue)
         {
-            Debug.Log($"[Ring] {Time.time:F2} -> {newvalue:F2}");
+           // Debug.Log($"[Ring] {Time.time:F2} -> {newvalue:F2}");
             targetProgress = newvalue;
             if (newvalue <= 0) displayedProgress = 0;
         }

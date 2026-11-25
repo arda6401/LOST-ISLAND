@@ -69,7 +69,7 @@ public class SlotManager : MonoBehaviour
             && database != null
             && database.TryGetWeapon(slot.weaponId, out WeaponDefinition weapon))
         {
-            slotUI.Set(weapon);
+            slotUI.Set(weapon,slot.ammo);
         }
         else
         {

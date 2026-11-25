@@ -136,7 +136,7 @@ namespace LostIsland.Player
             if (move.sqrMagnitude > 1f) move.Normalize(); // değer büyükse normalize et
 
             if (isFiring != serverFiring)
-                Debug.Log("[SERVER] firing: " + serverFiring);
+                Debug.Log("[SERVER] firing: " + isFiring);
 
             ServerAimAngle = AimAngleCode.Decode(aimangle);
             ServerMove = move;

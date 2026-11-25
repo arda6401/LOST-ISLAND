@@ -7,5 +7,6 @@ namespace LostIsland.Combat
     {
         public ushort weaponId; // 0 = bos
         public int ammo;
+        public bool IsHaveGun()=> weaponId != 0;
     }
 }

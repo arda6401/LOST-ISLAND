@@ -4,6 +4,8 @@ namespace LostIsland.Items
 {
     public abstract class ItemDefinition : ScriptableObject
     {
+
+        public ushort Id;
         [Header("Eşya")]
         public string displayName = "Eşya";
         public Sprite Icon;

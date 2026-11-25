@@ -16,7 +16,11 @@ namespace LostIsland.Items
         public ItemDefinition Get(ushort id)
         {
             if (id == None || id > items.Count) return null;
-            return items[id - 1];
+            foreach (ItemDefinition definition in items)
+                if (definition.Id == id)
+                    return definition;
+
+            return null;
         }
         public bool TryGetWeapon(ushort id, out WeaponDefinition weapon)
         {

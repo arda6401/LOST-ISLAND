@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 015dfd2330147174d8c86bfc7195da13, type: 3}
   m_Name: Weapon_AR
   m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Weapons.WeaponDefinition
+  Id: 1
   displayName: Ranger
   Icon: {fileID: 21300000, guid: 9d43d3cb019268540b6c624124169c1a, type: 3}
   maxStack: 1
-  pickupTime: 9.47
+  pickupTime: 3
   ItemPrefab: {fileID: 0}
   fireInterval: 0.15
   magazineSize: 50

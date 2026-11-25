@@ -24,7 +24,7 @@ namespace LostIsland.Combat
 
         public WeaponSlot GetSlot(int index) => slots[index];
 
-        public bool TryGetActive(out WeaponSlot slot)
+        public bool TryGetActiveSlot(out WeaponSlot slot)
         {
             slot = default;
             if (activeSlot >= slots.Count) return false;
@@ -38,6 +38,8 @@ namespace LostIsland.Combat
             ActiveSlotChanged?.Invoke();
         }
 
+
+
         public override void OnStartServer()
         {
             slots.Clear();
@@ -46,23 +48,44 @@ namespace LostIsland.Combat
         }
 
         [Server]
+        public bool TryConsumeAmmo()
+        {
+            if (!TryGetActiveSlot(out WeaponSlot slot)) return false;
+            if (slot.ammo <= 0) return false;
+
+            slot.ammo--;
+            slots[activeSlot] = slot;
+            return true;
+        }
+
+
+        public bool TryGetActiveSlotWeapon(out WeaponDefinition weapon)
+        {
+            weapon = null;
+            if (!TryGetActiveSlot(out WeaponSlot slot)) return false;
+
+            return database.TryGetWeapon(slot.weaponId, out weapon);
+        }
+
+
+        [Server]
         public bool TryPickup(ushort weaponId)
         {
-            if (database == null || !database.TryGetWeapon(weaponId, out _))
+            if (database == null || !database.TryGetWeapon(weaponId, out WeaponDefinition weapon))
                 return false;
 
             int target = -1;
 
             // Once aktif slot, sonra ilk bos slot, hepsi doluysa aktif slot degisir.
-            if (activeSlot < slots.Count && slots[activeSlot].weaponId == 0)
+            if (activeSlot < this.slots.Count && this.slots[activeSlot].weaponId == 0)
             {
                 target = activeSlot;
             }
             else
             {
-                for (int i = 0; i < slots.Count; i++)
+                for (int i = 0; i < this.slots.Count; i++)
                 {
-                    if (slots[i].weaponId != 0) continue;
+                    if (this.slots[i].weaponId != 0) continue;
 
                     target = i;
                     break;
@@ -74,9 +97,10 @@ namespace LostIsland.Combat
 
             if (target < 0) return false;
 
-            WeaponSlot slot = slots[target];
+            WeaponSlot slot = this.slots[target];
             slot.weaponId = weaponId;
-            slots[target] = slot;
+            slot.ammo = weapon.magazineSize;
+            this.slots[target] = slot;
 
             return true;
         }
@@ -124,6 +148,9 @@ namespace LostIsland.Combat
 
             activeSlot = (byte)((activeSlot + 1) % slots.Count);
         }
+
+        public bool TryGetWeaponById(ushort id, out WeaponDefinition weapon)
+    => database.TryGetWeapon(id, out weapon);
 
         public void RequestSwitch() => CmdSwitchWeapon();
 

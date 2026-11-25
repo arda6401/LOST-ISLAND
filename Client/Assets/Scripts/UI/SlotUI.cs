@@ -15,7 +15,7 @@ public class SlotUI : MonoBehaviour
         Clear();
     }
 
-    public void Set(WeaponDefinition weapon)
+    public void Set(WeaponDefinition weapon,int ammo)
     {
         if (weapon == null)
         {
@@ -25,6 +25,8 @@ public class SlotUI : MonoBehaviour
 
         Icon.sprite = weapon.Icon;
         Icon.gameObject.SetActive(true);
+        AmmoText.gameObject.SetActive(true);
+        AmmoText.text =  ammo.ToString();
     }
 
     public void Clear()
@@ -33,5 +35,10 @@ public class SlotUI : MonoBehaviour
 
         Icon.sprite = null;
         Icon.gameObject.SetActive(false);
+         if (AmmoText != null)
+    {
+        AmmoText.text = "";
+        AmmoText.gameObject.SetActive(false);
+    }
     }
 }
