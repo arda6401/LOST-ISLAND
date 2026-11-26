@@ -35,7 +35,7 @@ namespace LostIsland.Combat
 
         private void OnActiveSlotChanged(byte oldValue, byte newValue)
         {
-            ActiveSlotChanged?.Invoke();
+            ActiveSlotChanged?.Invoke(newValue);
         }
 
 
@@ -107,7 +107,7 @@ namespace LostIsland.Combat
 
         #region Client
 
-        public event Action ActiveSlotChanged;
+        public event Action<byte> ActiveSlotChanged;
         public event Action<int, WeaponSlot> SlotChanged;
         public event Action SlotsCleared;
 

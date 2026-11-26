@@ -9,8 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6970052466655093021}
-  - component: {fileID: 6605122296046706000}
   - component: {fileID: 3287895389503760591}
+  - component: {fileID: 6605122296046706000}
   - component: {fileID: 5041926532720319045}
   m_Layer: 0
   m_Name: WorldItem
@@ -38,6 +38,27 @@ Transform:
   - {fileID: 6307619778511373084}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3287895389503760591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 898885271983361483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 342341eb813bbde46b158cecfebcb3e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Items.WorldItem
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  progressBar: {fileID: 4276419210222183365}
+  ownColor: {r: 0.25451618, g: 1, b: 0, a: 1}
+  otherColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
+  smoothSpeed: 15
+  ModelRoot: {fileID: 5595715545021121819}
+  startQuantity: 1
 --- !u!135 &6605122296046706000
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -59,27 +80,6 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3287895389503760591
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 898885271983361483}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 342341eb813bbde46b158cecfebcb3e0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LostIsland.Items.WorldItem
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  database: {fileID: 11400000, guid: e092b3fb120541c49bff02beaf51f2f0, type: 2}
-  startItem: {fileID: 11400000, guid: fd47bf27a7602a744b0e4125a2b3953b, type: 2}
-  startQuantity: 1
-  ProgressBar: {fileID: 4276419210222183365}
-  ownColor: {r: 0.25451618, g: 1, b: 0, a: 1}
-  otherColor: {r: 0.4, g: 0.4, b: 0.4, a: 1}
 --- !u!114 &5041926532720319045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -402,7 +402,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4622548510811983082, guid: 8868922ef77a111428eca94aa3920c8c, type: 3}
       propertyPath: m_Name
-      value: Ranger_Model
+      value: ModelRoot
       objectReference: {fileID: 0}
     - target: {fileID: 8891615099270113881, guid: 8868922ef77a111428eca94aa3920c8c, type: 3}
       propertyPath: m_LocalScale.x
@@ -465,6 +465,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8868922ef77a111428eca94aa3920c8c, type: 3}
+--- !u!1 &5595715545021121819 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4622548510811983082, guid: 8868922ef77a111428eca94aa3920c8c, type: 3}
+  m_PrefabInstance: {fileID: 973180787327764977}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8567027468577711016 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8891615099270113881, guid: 8868922ef77a111428eca94aa3920c8c, type: 3}

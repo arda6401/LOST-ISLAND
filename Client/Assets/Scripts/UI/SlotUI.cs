@@ -1,3 +1,7 @@
+using System.Runtime.Serialization;
+using LostIsland.Combat;
+using LostIsland.Core;
+using LostIsland.Player;
 using LostIsland.Weapons;
 using TMPro;
 using UnityEngine;
@@ -9,13 +13,36 @@ public class SlotUI : MonoBehaviour
     // Todo OnSelectedAnim
     [SerializeField] private Image Icon;
     [SerializeField] private TextMeshProUGUI AmmoText;
+    [SerializeField] private Sprite SlotSprite;
+    [SerializeField] private Sprite ActiveSlotSprite;
+    [SerializeField] private Image SlotBG;
+    private PlayerInventory boundInventory;
+    private byte activeSlot;
+    private bool playerSpawned;
 
     void Awake()
     {
         Clear();
+        HideSlotBackground();
     }
 
-    public void Set(WeaponDefinition weapon,int ammo)
+    private void OnEnable()
+    {
+        LocalPlayerEvents.Spawned += OnSpawnPlayer;
+        LocalPlayerEvents.Despawned += OnPlayerDespawned;
+
+        if (LocalPlayerEvents.Current != null)
+            OnSpawnPlayer(LocalPlayerEvents.Current);
+    }
+    private void OnDisable()
+    {
+        LocalPlayerEvents.Spawned -= OnSpawnPlayer;
+        LocalPlayerEvents.Despawned -= OnPlayerDespawned;
+        UnbindInventory();
+        playerSpawned = false;
+        HideSlotBackground();
+    }
+    public void Set(WeaponDefinition weapon, int ammo)
     {
         if (weapon == null)
         {
@@ -26,19 +53,90 @@ public class SlotUI : MonoBehaviour
         Icon.sprite = weapon.Icon;
         Icon.gameObject.SetActive(true);
         AmmoText.gameObject.SetActive(true);
-        AmmoText.text =  ammo.ToString();
+        AmmoText.text = ammo.ToString();
+
+        if (SlotBG != null)
+        {
+            SlotBG.gameObject.SetActive(true);
+            UpdateSlotBackground();
+        }
+    }
+    private void OnSpawnPlayer(Transform player)
+    {
+        UnbindInventory();
+        playerSpawned = true;
+
+        if (player != null)
+            boundInventory = player.GetComponent<PlayerInventory>();
+
+        if (boundInventory != null)
+        {
+            boundInventory.ActiveSlotChanged += OnActiveSlotChanged;
+            OnActiveSlotChanged(boundInventory.ActiveSlot);
+        }
+        else
+        {
+            UpdateSlotBackground();
+        }
+    }
+
+    private void OnPlayerDespawned()
+    {
+        playerSpawned = false;
+        UnbindInventory();
+        HideSlotBackground();
+    }
+
+    private void UnbindInventory()
+    {
+        if (boundInventory != null)
+            boundInventory.ActiveSlotChanged -= OnActiveSlotChanged;
+
+        boundInventory = null;
+    }
+
+    private void OnActiveSlotChanged(byte activeslot)
+    {
+        activeSlot = activeslot;
+        UpdateSlotBackground();
+    }
+
+    private void UpdateSlotBackground()
+    {
+        if (SlotBG == null) return;
+        if (!playerSpawned) return;
+
+        SlotBG.gameObject.SetActive(true);
+
+        if ((SlotIndex - 1) == activeSlot)
+            SlotBG.sprite = ActiveSlotSprite;
+        else
+            SlotBG.sprite = SlotSprite;
     }
 
     public void Clear()
     {
-        if (Icon == null) return;
+        if (Icon != null)
+        {
+            Icon.sprite = null;
+            Icon.gameObject.SetActive(false);
+        }
+        if (AmmoText != null)
+        {
+            AmmoText.text = "";
+            AmmoText.gameObject.SetActive(false);
+        }
 
-        Icon.sprite = null;
-        Icon.gameObject.SetActive(false);
-         if (AmmoText != null)
+        if (playerSpawned)
+            UpdateSlotBackground();
+    }
+
+    private void HideSlotBackground()
     {
-        AmmoText.text = "";
-        AmmoText.gameObject.SetActive(false);
+        if (SlotBG != null)
+            SlotBG.gameObject.SetActive(false);
     }
-    }
+
+    public void RequestChangeSlot() => boundInventory.RequestSwitch();
+
 }

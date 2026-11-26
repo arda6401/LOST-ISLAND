@@ -1,4 +1,5 @@
 using System;
+using LostIsland.Player;
 using UnityEngine;
 namespace LostIsland.Core
 {
@@ -6,6 +7,7 @@ namespace LostIsland.Core
     {
         public static event Action<Transform> Spawned;
         public static event Action Despawned;
+        public static PlayerEntity Player;
 
 
         public static Transform Current { get; private set; }
@@ -13,6 +15,7 @@ namespace LostIsland.Core
         public static void RaiseSpawned(Transform player)
         {
             Current = player;
+            Player = player.GetComponent<PlayerEntity>();
             Spawned?.Invoke(player);
         }
 

@@ -64,16 +64,8 @@ namespace LostIsland.Combat
         }
 
 
-        [ContextMenu("Debug: 10 hasar")]
-        private void DebugDamage()
-        {
-            if (isServer) TakeDamage(10);
-        }
+     
 
-        private void OnGUI()
-        {
-            if (!isLocalPlayer) return;
-            GUI.Label(new Rect(20, 20, 200, 30), $"HP: {current} / {maxHealth}");
-        }
+      
     }
 }
